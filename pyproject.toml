@@ -42,6 +42,10 @@ src = ["src", "tests"]
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM", "C4", "RUF"]
 
+[tool.ruff.lint.per-file-ignores]
+# FastAPI's Query() defaults are the idiomatic way to declare query params.
+"src/kid_events/web/app.py" = ["B008"]
+
 [tool.mypy]
 python_version = "3.12"
 strict = true

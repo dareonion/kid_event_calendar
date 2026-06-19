@@ -1,0 +1,36 @@
+<p class="count">{{ events | length }} event{{ '' if events | length == 1 else 's' }}</p>
+
+{% if not events %}
+  <p class="empty">No events match these filters. Try widening the distance or age range.</p>
+{% endif %}
+
+{% for event in events %}
+  {% if group_by_day and (loop.first or loop.previtem.start.date() != event.start.date()) %}
+    <h2 class="day-heading">{{ event.start | day_label }}</h2>
+  {% endif %}
+  <article class="card">
+    <div class="card-time">
+      <span class="time">{{ event.start | time_label }}</span>
+      {% if not group_by_day %}<span class="muted">{{ event.start | day_label }}</span>{% endif %}
+      {% if event.distance_mi is not none %}
+        <span class="distance">{{ "%.1f"|format(event.distance_mi) }} mi</span>
+      {% endif %}
+    </div>
+    <div class="card-body">
+      <h3>
+        {% if event.url %}<a href="{{ event.url }}" target="_blank" rel="noopener">{{ event.title }}</a>
+        {% else %}{{ event.title }}{% endif %}
+      </h3>
+      <p class="meta">
+        {{ event.source }}{% if event.location_name %} · {{ event.location_name }}{% endif %}
+        {% if event.city %} · {{ event.city }}{% endif %}
+        {% if event.registration_required %} · <span class="reg">registration</span>{% endif %}
+      </p>
+      <div class="badges">
+        {% for band in event.age_bands %}<span class="badge">{{ band.label }}</span>{% endfor %}
+        {% if event.age_inferred %}<span class="badge inferred" title="Age inferred from title/description">~age</span>{% endif %}
+      </div>
+      {% if event.description %}<p class="desc">{{ event.description | truncate(220) }}</p>{% endif %}
+    </div>
+  </article>
+{% endfor %}

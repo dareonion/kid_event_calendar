@@ -32,11 +32,15 @@ class FilterParams(BaseModel):
     sort: SortKey = SortKey.DATE
 
     def desired_bands(self) -> set[AgeBand] | None:
-        """Bands an event must overlap, or ``None`` for no age filter."""
+        """Bands an event must overlap, or ``None`` for no age filter.
+
+        ALL_AGES is always added so family / all-ages events match any chosen
+        age (child_age_to_bands already includes it).
+        """
         if self.child_age_months is not None:
             return child_age_to_bands(self.child_age_months)
         if self.age_bands:
-            return set(self.age_bands)
+            return set(self.age_bands) | {AgeBand.ALL_AGES}
         return None
 
 

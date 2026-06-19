@@ -60,9 +60,7 @@ class BiblioCommonsSource:
                 page_events = self._parse_page(payload)
                 if not page_events:
                     break
-                events.extend(
-                    e for e in page_events if window_start <= e.start <= window_end
-                )
+                events.extend(e for e in page_events if window_start <= e.start <= window_end)
                 # Pages are chronological; once a whole page starts past the
                 # window there is nothing useful left to fetch.
                 if min(e.start for e in page_events) > window_end:

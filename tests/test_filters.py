@@ -35,9 +35,10 @@ def test_child_age_selects_overlapping_bands():
     assert ids == {"infant", "family", "online"}  # infant + all_ages bands
 
 
-def test_explicit_age_bands():
+def test_explicit_age_bands_include_all_ages():
+    # Selecting school-age also surfaces all-ages / family events.
     out = apply_filters(EVENTS, FilterParams(age_bands={AgeBand.SCHOOL_AGE}))
-    assert {e.id for e in out} == {"school"}
+    assert {e.id for e in out} == {"school", "family"}
 
 
 def test_no_age_filter_returns_all():
@@ -49,9 +50,7 @@ def test_distance_filter_and_unknown_toggle():
     near = apply_filters(EVENTS, FilterParams(max_miles=10))
     assert {e.id for e in near} == {"infant", "toddler", "online"}  # online unknown kept
 
-    near_strict = apply_filters(
-        EVENTS, FilterParams(max_miles=10, include_unknown_location=False)
-    )
+    near_strict = apply_filters(EVENTS, FilterParams(max_miles=10, include_unknown_location=False))
     assert {e.id for e in near_strict} == {"infant", "toddler"}
 
 

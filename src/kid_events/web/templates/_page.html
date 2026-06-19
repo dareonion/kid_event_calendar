@@ -1,0 +1,100 @@
+<div id="page">
+  <header class="topbar">
+    <div>
+      <h1>Kid Event Calendar</h1>
+      <p class="subtitle">Upcoming library events for kids near Mountain View, CA</p>
+    </div>
+    <div class="refresh">
+      {% if cache %}
+        <span class="muted">Updated {{ cache.generated_at | day_label }}, {{ cache.generated_at | time_label }}</span>
+      {% endif %}
+      <button type="button" hx-post="/refresh" hx-target="#page" hx-swap="outerHTML"
+              hx-disabled-elt="this" class="refresh-btn">
+        Refresh data
+      </button>
+      <span class="htmx-indicator muted">refreshing… (~20s)</span>
+    </div>
+  </header>
+
+  {% if not cache %}
+    <p class="empty">No event cache yet. Run <code>uv run kid-events refresh</code> or click
+      <strong>Refresh data</strong> above.</p>
+  {% else %}
+  <div class="layout">
+    <form id="filters" class="sidebar"
+          hx-get="/events" hx-target="#results" hx-swap="innerHTML"
+          hx-trigger="change, keyup delay:400ms from:input[name=age], keyup delay:400ms from:input[name=keyword]">
+
+      <fieldset>
+        <legend>Child's age</legend>
+        <input type="text" name="age" value="{{ selected.age }}"
+               placeholder="e.g. 8 months, 3 years" autocomplete="off" />
+        <p class="hint">or pick age groups:</p>
+        {% for band in all_bands %}
+          <label class="check">
+            <input type="checkbox" name="bands" value="{{ band.value }}"
+                   {% if band.value in selected.bands %}checked{% endif %} />
+            {{ band.label }}
+          </label>
+        {% endfor %}
+      </fieldset>
+
+      <fieldset>
+        <legend>Distance from Mountain View</legend>
+        <select name="radius">
+          {% for key, preset in radius_presets.items() %}
+            <option value="{{ key }}" {% if key == selected.radius %}selected{% endif %}>{{ preset[0] }}</option>
+          {% endfor %}
+        </select>
+        <label class="check">
+          <input type="checkbox" name="hide_unknown" value="true"
+                 {% if selected.hide_unknown %}checked{% endif %} />
+          Hide unknown-location events
+        </label>
+      </fieldset>
+
+      <fieldset>
+        <legend>When</legend>
+        <select name="days">
+          {% for value, label in day_options %}
+            <option value="{{ value }}" {% if value == selected.days %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </fieldset>
+
+      <fieldset>
+        <legend>Library</legend>
+        {% for stat in cache.sources %}
+          <label class="check">
+            <input type="checkbox" name="sources" value="{{ stat.key }}"
+                   {% if not selected.sources or stat.key in selected.sources %}checked{% endif %} />
+            {{ stat.name }} <span class="muted">({{ stat.count }})</span>
+          </label>
+        {% endfor %}
+      </fieldset>
+
+      <fieldset>
+        <legend>Keyword</legend>
+        <input type="text" name="keyword" value="{{ selected.keyword }}"
+               placeholder="storytime, lego…" autocomplete="off" />
+      </fieldset>
+
+      <fieldset>
+        <legend>Sort by</legend>
+        <select name="sort">
+          <option value="date" {% if selected.sort == 'date' %}selected{% endif %}>Date</option>
+          <option value="distance" {% if selected.sort == 'distance' %}selected{% endif %}>Distance</option>
+        </select>
+      </fieldset>
+
+      {% if cache.notes %}
+        <p class="note">{{ cache.notes | join(' ') }}</p>
+      {% endif %}
+    </form>
+
+    <main id="results" class="results">
+      {% include "_event_list.html" %}
+    </main>
+  </div>
+  {% endif %}
+</div>

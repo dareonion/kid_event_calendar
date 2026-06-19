@@ -35,9 +35,7 @@ def _locate(event: Event, default_city: str) -> Event:
         if lat is not None and lon is not None
         else None
     )
-    return event.model_copy(
-        update={"lat": lat, "lon": lon, "city": city, "distance_mi": distance}
-    )
+    return event.model_copy(update={"lat": lat, "lon": lon, "city": city, "distance_mi": distance})
 
 
 def aggregate(days: int = 14, sources: list[Source] | None = None) -> EventCache:
