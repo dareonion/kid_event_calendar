@@ -61,11 +61,18 @@ _AUDIENCE_KEYWORDS: list[tuple[str, AgeBand]] = [
     ("intergenerational", AgeBand.ALL_AGES),
 ]
 
+# A leading word boundary (but no trailing one) rejects substring collisions
+# like "tween" inside "between" while still matching plural stems such as
+# "teen" -> "teens" and "toddler" -> "toddlers".
+_AUDIENCE_PATTERNS: list[tuple[re.Pattern[str], AgeBand]] = [
+    (re.compile(r"\b" + re.escape(keyword)), band) for keyword, band in _AUDIENCE_KEYWORDS
+]
+
 
 def audience_name_to_bands(text: str) -> set[AgeBand]:
     """Return every age band implied by an audience label / free text."""
     lowered = text.lower()
-    return {band for keyword, band in _AUDIENCE_KEYWORDS if keyword in lowered}
+    return {band for pattern, band in _AUDIENCE_PATTERNS if pattern.search(lowered)}
 
 
 def infer_bands_from_title(title: str, description: str = "") -> set[AgeBand]:

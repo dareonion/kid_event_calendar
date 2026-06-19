@@ -27,11 +27,19 @@ DEFAULT_HEADERS = {"User-Agent": "kid-events/0.1 (personal kids-event aggregator
 
 
 class BiblioCommonsSource:
-    def __init__(self, key: str, name: str, subdomain: str, default_city: str) -> None:
+    def __init__(
+        self,
+        key: str,
+        name: str,
+        subdomain: str,
+        default_city: str,
+        enabled: bool = True,
+    ) -> None:
         self.key = key
         self.name = name
         self.subdomain = subdomain
         self.default_city = default_city
+        self.enabled = enabled
 
     def fetch(
         self,

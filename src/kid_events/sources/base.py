@@ -23,6 +23,7 @@ class Source(Protocol):
     key: str
     name: str
     default_city: str
+    enabled: bool
 
     def fetch(self, window_start: datetime, window_end: datetime) -> list[Event]:
         """Return normalized events whose start falls within the window."""
