@@ -1,0 +1,24 @@
+{
+  "center_name": "Mountain View",
+  "center": { "lat": 37.3894, "lon": -122.0819 },
+  "cities": {
+    "mountain view": { "lat": 37.3894, "lon": -122.0819 },
+    "sunnyvale": { "lat": 37.3688, "lon": -122.0363 },
+    "palo alto": { "lat": 37.4419, "lon": -122.143 },
+    "east palo alto": { "lat": 37.4688, "lon": -122.1411 },
+    "los altos hills": { "lat": 37.3797, "lon": -122.1372 },
+    "los altos": { "lat": 37.3852, "lon": -122.1141 },
+    "san jose": { "lat": 37.3382, "lon": -121.8863 },
+    "santa clara": { "lat": 37.3541, "lon": -121.9552 },
+    "cupertino": { "lat": 37.323, "lon": -122.0322 },
+    "campbell": { "lat": 37.2872, "lon": -121.95 },
+    "saratoga": { "lat": 37.2638, "lon": -122.023 },
+    "milpitas": { "lat": 37.4323, "lon": -121.8996 },
+    "los gatos": { "lat": 37.2358, "lon": -121.9624 },
+    "morgan hill": { "lat": 37.1305, "lon": -121.6544 },
+    "gilroy": { "lat": 37.0058, "lon": -121.5683 },
+    "menlo park": { "lat": 37.453, "lon": -122.1817 },
+    "redwood city": { "lat": 37.4852, "lon": -122.2364 },
+    "fremont": { "lat": 37.5485, "lon": -121.9886 }
+  }
+}
