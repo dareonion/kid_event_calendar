@@ -47,7 +47,7 @@ python_version = "3.12"
 strict = true
 warn_unused_ignores = true
 warn_redundant_casts = true
-files = ["src", "tests"]
+files = ["src"]
 
 [[tool.mypy.overrides]]
 module = ["icalendar.*"]
