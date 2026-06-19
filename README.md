@@ -6,13 +6,19 @@ View, CA**.
 
 It pulls from libraries that publish official, no-auth feeds:
 
-| Library | Source |
-| --- | --- |
-| Palo Alto | BiblioCommons JSON API |
-| Santa Clara County (SCCLD) | BiblioCommons JSON API |
-| San Jose | BiblioCommons JSON API |
-| Mountain View | LibCal iCal feed |
-| Sunnyvale | LibCal iCal feed |
+| Library | Source | Status |
+| --- | --- | --- |
+| Palo Alto | BiblioCommons JSON API | active |
+| Santa Clara County (SCCLD) | BiblioCommons JSON API | active |
+| San Jose | BiblioCommons JSON API | active |
+| Mountain View | LibCal iCal feed | active |
+| Sunnyvale | LibCal iCal feed | disabled — see below |
+
+> **Sunnyvale** uses LibCal but its `ical_subscribe` endpoint rejects the public
+> calendar id (`cid=13025` → "invalid calendar id"). It is registered in
+> `sources/registry.py` but disabled; flip `enabled=True` once its real iCal feed
+> id is captured from the calendar's "Subscribe / iCal" link. SCCLD already covers
+> several nearby South Bay cities (Cupertino, Campbell, Los Altos, Milpitas, …).
 
 Events are normalized into a common shape with a shared **age-band taxonomy** (infant → toddler →
 preschool → school-age → tween/teen) and tagged with their library branch's location so they can be

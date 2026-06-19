@@ -5,12 +5,13 @@ repos:
       - id: ruff
         args: [--fix]
       - id: ruff-format
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.11.2
+  # Run mypy in the project environment (via uv) so it sees all runtime deps,
+  # matching `uv run mypy src` exactly rather than an isolated hook env.
+  - repo: local
     hooks:
       - id: mypy
-        additional_dependencies:
-          - pydantic>=2.7
-          - types-python-dateutil
-        args: [--config-file=pyproject.toml]
+        name: mypy
+        entry: uv run mypy src
+        language: system
+        types: [python]
         pass_filenames: false
