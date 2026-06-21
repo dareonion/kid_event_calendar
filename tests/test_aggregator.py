@@ -69,4 +69,5 @@ def test_aggregate_filters_and_geocodes():
     assert by_id["online"].distance_mi is None  # online -> no coordinates
 
     assert cache.sources[0].count == 2
-    assert any("Sunnyvale" in note for note in cache.notes)  # disabled source reported
+    # All registered sources are active now, so there is no disabled-source note.
+    assert cache.notes == []

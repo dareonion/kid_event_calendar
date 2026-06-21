@@ -15,6 +15,12 @@ dependencies = [
     "tzdata>=2024.1",
 ]
 
+[project.optional-dependencies]
+# Sunnyvale's library calendar has no feed and is bot-protected, so it requires
+# a headless browser to scrape. Optional: `uv sync --extra sunnyvale` then
+# `uv run playwright install chromium`.
+sunnyvale = ["playwright>=1.40"]
+
 [project.scripts]
 kid-events = "kid_events.cli:main"
 

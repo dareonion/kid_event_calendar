@@ -16,8 +16,8 @@ from typing import Any, cast
 import httpx
 from icalendar import Calendar
 
-from ..ages import audience_name_to_bands
-from ..models import BAND_ORDER, AgeBand, Event
+from ..ages import infer_event_bands
+from ..models import BAND_ORDER, Event
 from ..textutil import html_to_text
 from .base import PACIFIC
 
@@ -83,19 +83,6 @@ def _categories(component: Any) -> list[str]:
     return out
 
 
-def _infer_bands(summary: str, description: str, categories: list[str]) -> set[AgeBand]:
-    text = f"{summary}\n{' '.join(categories)}\n{description}"
-    lowered = text.lower()
-    bands = audience_name_to_bands(text)
-    if "storytime" in lowered or "story time" in lowered:
-        bands |= {AgeBand.INFANT, AgeBand.TODDLER, AgeBand.PRESCHOOL}
-    # LibCal tags many programs only as "... (Youth)"; treat as kid-relevant
-    # when no more specific age was found.
-    if not any(band.is_kid for band in bands) and "youth" in lowered:
-        bands |= {AgeBand.PRESCHOOL, AgeBand.SCHOOL_AGE}
-    return bands
-
-
 def parse_ical(text: str, *, key: str, name: str, default_city: str) -> list[Event]:
     """Convert a LibCal iCal feed into normalized events (pure)."""
     calendar = Calendar.from_ical(text)
@@ -116,7 +103,7 @@ def parse_ical(text: str, *, key: str, name: str, default_city: str) -> list[Eve
         uid = str(component.get("UID") or url or summary)
         categories = _categories(component)
 
-        bands = _infer_bands(summary, description, categories)
+        bands = infer_event_bands(summary, description, tuple(categories))
         lowered_desc = description.lower()
         registration = (
             "registration is required" in lowered_desc or "registration required" in lowered_desc

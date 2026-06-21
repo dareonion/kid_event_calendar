@@ -88,6 +88,24 @@ def infer_bands_from_title(title: str, description: str = "") -> set[AgeBand]:
     return bands
 
 
+def infer_event_bands(
+    title: str, description: str = "", categories: tuple[str, ...] = ()
+) -> set[AgeBand]:
+    """Richer inference for feed-less sources (LibCal, Sunnyvale CMS).
+
+    Extends :func:`infer_bands_from_title` with category text and a "youth"
+    fallback for programs only labelled generically (e.g. "... (Youth)").
+    """
+    text = f"{title}\n{' '.join(categories)}\n{description}"
+    lowered = text.lower()
+    bands = audience_name_to_bands(text)
+    if "storytime" in lowered or "story time" in lowered:
+        bands |= {AgeBand.INFANT, AgeBand.TODDLER, AgeBand.PRESCHOOL}
+    if not any(band.is_kid for band in bands) and "youth" in lowered:
+        bands |= {AgeBand.PRESCHOOL, AgeBand.SCHOOL_AGE}
+    return bands
+
+
 def child_age_to_bands(age_months: int) -> set[AgeBand]:
     """Bands a child of the given age (in months) would be a fit for.
 

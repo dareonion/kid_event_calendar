@@ -12,16 +12,16 @@ It pulls from libraries that publish official, no-auth feeds:
 | Santa Clara County (SCCLD) | BiblioCommons JSON API | active |
 | San Jose | BiblioCommons JSON API | active |
 | Mountain View | LibCal iCal feed | active |
-| Sunnyvale | LibCal iCal feed | disabled — see below |
+| Sunnyvale | City CMS (browser scrape) | active — needs the optional `sunnyvale` extra |
 
-> **Sunnyvale** has no machine-readable events feed, so it is registered in
-> `sources/registry.py` but disabled. Its `sunnyvale.libcal.com` page is only a
-> 3-event "featured" widget (not subscribable); its real calendar lives on a
-> Granicus/Vision city CMS (`library.sunnyvale.ca.gov/events`) that exposes no
-> iCal/RSS and is behind bot protection (403 to non-browser clients); and its
-> BiblioCommons subdomain is catalog-only (events gateway returns 403). Including
-> it would require headless-browser scraping. SCCLD already covers several nearby
-> South Bay cities (Cupertino, Campbell, Los Altos, Milpitas, …).
+> **Sunnyvale** has no machine-readable feed: its `sunnyvale.libcal.com` page is
+> only a 3-event "featured" widget, its BiblioCommons subdomain is catalog-only
+> (events gateway 403), and its real calendar lives on a Granicus/Vision city CMS
+> (`library.sunnyvale.ca.gov/events`) with no iCal/RSS that is behind Akamai bot
+> protection — even *headless* Chromium gets a 403. So its adapter drives a
+> **headful** browser (a Chrome window briefly opens during refresh). It needs the
+> optional extra (see Setup); without it, refresh just reports Sunnyvale as errored
+> and the other four libraries still work.
 
 Events are normalized into a common shape with a shared **age-band taxonomy** (infant → toddler →
 preschool → school-age → tween/teen) and tagged with their library branch's location so they can be
@@ -36,6 +36,13 @@ filtered by straight-line distance from a center point.
 
 ```sh
 uv sync
+```
+
+To also pull **Sunnyvale** (optional; drives a headful browser — see the note above):
+
+```sh
+uv sync --extra sunnyvale
+uv run playwright install chromium
 ```
 
 ## Usage

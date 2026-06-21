@@ -8,6 +8,7 @@ from __future__ import annotations
 from .base import Source
 from .bibliocommons import BiblioCommonsSource
 from .libcal import LibCalSource
+from .sunnyvale_cms import SunnyvaleCMSSource
 
 ALL_SOURCES: list[Source] = [
     BiblioCommonsSource("paloalto", "Palo Alto City Library", "paloalto", "palo alto"),
@@ -19,23 +20,11 @@ ALL_SOURCES: list[Source] = [
         "https://mountainview.libcal.com/ical_subscribe.php?cid=8800",
         "mountain view",
     ),
-    # Sunnyvale has no machine-readable events feed (verified 2026-06):
-    #   * sunnyvale.libcal.com is only a 3-event "featured" widget, not a
-    #     subscribable calendar (ical_subscribe -> "invalid calendar id").
-    #   * The real calendar lives on a Granicus/Vision CMS
-    #     (library.sunnyvale.ca.gov/events) with no iCal/RSS and WAF bot
-    #     protection (403 to non-browser clients).
-    #   * Their BiblioCommons (sunnyvale.bibliocommons.com) is catalog-only;
-    #     the events gateway returns 403.
-    # Including Sunnyvale would require headless-browser scraping, so it stays
-    # disabled. The URL below is a non-working placeholder.
-    LibCalSource(
-        "sunnyvale",
-        "Sunnyvale Public Library",
-        "https://sunnyvale.libcal.com/ical_subscribe.php?cid=13025",
-        "sunnyvale",
-        enabled=False,
-    ),
+    # Sunnyvale has no machine-readable feed: its real calendar is a bot-protected
+    # Granicus/Vision city CMS, so this adapter scrapes it with a headful browser.
+    # Requires the optional `sunnyvale` extra + `playwright install chromium`;
+    # without them fetch() raises and the aggregator just reports it per-source.
+    SunnyvaleCMSSource(),
 ]
 
 
