@@ -2,16 +2,21 @@
 
 Covers libraries on BiblioCommons (Palo Alto, Santa Clara County, San Jose) via
 ``https://gateway.bibliocommons.com/v2/libraries/{subdomain}/events``. Each
-response carries an ``events.items`` ordering plus an ``entities`` map that
-resolves audience and location ids to human-readable records. Results are
-returned in chronological order across pages, so pagination stops early once a
-page starts past the requested window.
+response carries an ``events.items`` list plus an ``entities`` map that resolves
+audience and location ids to human-readable records.
+
+The API exposes no working date filter and ``events.items`` is NOT in date
+order (a single page can span many months), so in-window events are scattered
+across all pages. We therefore page through the whole result set (at a large
+limit to keep the request count down) and keep only events inside the window.
 """
 
 from __future__ import annotations
 
+import time
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
-from typing import Any
+from typing import Any, cast
 
 import httpx
 
@@ -21,8 +26,10 @@ from ..textutil import html_to_text
 from .base import PACIFIC
 
 GATEWAY = "https://gateway.bibliocommons.com/v2/libraries/{subdomain}/events"
-PAGE_LIMIT = 50
-MAX_PAGES = 25
+PAGE_LIMIT = 100  # 200+ intermittently 500s on the larger libraries
+MAX_PAGES = 80  # safety cap; covers the largest library (~8k events at this limit)
+WORKERS = 8  # parallel page fetches per library
+RETRIES = 2  # the gateway returns occasional transient 500s
 DEFAULT_HEADERS = {"User-Agent": "kid-events/0.1 (personal kids-event aggregator)"}
 
 
@@ -50,28 +57,26 @@ class BiblioCommonsSource:
         owns_client = client is None
         client = client or httpx.Client(timeout=30.0, headers=DEFAULT_HEADERS)
         url = GATEWAY.format(subdomain=self.subdomain)
-        events: list[Event] = []
         try:
-            page = 1
-            while page <= MAX_PAGES:
-                response = client.get(url, params={"limit": PAGE_LIMIT, "page": page})
-                response.raise_for_status()
-                payload = response.json()
-                page_events = self._parse_page(payload)
-                if not page_events:
-                    break
-                events.extend(e for e in page_events if window_start <= e.start <= window_end)
-                # Pages are chronological; once a whole page starts past the
-                # window there is nothing useful left to fetch.
-                if min(e.start for e in page_events) > window_end:
-                    break
-                pagination = payload.get("events", {}).get("pagination", {})
-                if page >= pagination.get("pages", page):
-                    break
-                page += 1
+            # The whole result set must be scanned (items aren't date-ordered),
+            # so fetch page 1 to learn the page count, then pull the rest in
+            # parallel — httpx.Client is safe to share across threads.
+            first = _get_page(client, url, 1)
+            total_pages = first.get("events", {}).get("pagination", {}).get("pages", 1)
+            payloads = [first]
+            remaining = range(2, min(total_pages, MAX_PAGES) + 1)
+            if remaining:
+                with ThreadPoolExecutor(max_workers=WORKERS) as pool:
+                    payloads.extend(pool.map(lambda p: _get_page(client, url, p), remaining))
         finally:
             if owns_client:
                 client.close()
+
+        events: list[Event] = []
+        for payload in payloads:
+            events.extend(
+                e for e in self._parse_page(payload) if window_start <= e.start <= window_end
+            )
         return events
 
     def _parse_page(self, payload: dict[str, Any]) -> list[Event]:
@@ -82,6 +87,21 @@ class BiblioCommonsSource:
             subdomain=self.subdomain,
             default_city=self.default_city,
         )
+
+
+def _get_page(client: httpx.Client, url: str, page: int) -> dict[str, Any]:
+    """GET one page, retrying the gateway's occasional transient 500s."""
+    params = {"limit": PAGE_LIMIT, "page": page}
+    for attempt in range(RETRIES + 1):
+        try:
+            response = client.get(url, params=params)
+            response.raise_for_status()
+            return cast("dict[str, Any]", response.json())
+        except (httpx.HTTPStatusError, httpx.TransportError):
+            if attempt == RETRIES:
+                raise
+            time.sleep(0.6 * (attempt + 1))
+    raise AssertionError("unreachable")  # pragma: no cover
 
 
 def _audience_text(audience: dict[str, Any]) -> str:
