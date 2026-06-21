@@ -14,11 +14,14 @@ It pulls from libraries that publish official, no-auth feeds:
 | Mountain View | LibCal iCal feed | active |
 | Sunnyvale | LibCal iCal feed | disabled — see below |
 
-> **Sunnyvale** uses LibCal but its `ical_subscribe` endpoint rejects the public
-> calendar id (`cid=13025` → "invalid calendar id"). It is registered in
-> `sources/registry.py` but disabled; flip `enabled=True` once its real iCal feed
-> id is captured from the calendar's "Subscribe / iCal" link. SCCLD already covers
-> several nearby South Bay cities (Cupertino, Campbell, Los Altos, Milpitas, …).
+> **Sunnyvale** has no machine-readable events feed, so it is registered in
+> `sources/registry.py` but disabled. Its `sunnyvale.libcal.com` page is only a
+> 3-event "featured" widget (not subscribable); its real calendar lives on a
+> Granicus/Vision city CMS (`library.sunnyvale.ca.gov/events`) that exposes no
+> iCal/RSS and is behind bot protection (403 to non-browser clients); and its
+> BiblioCommons subdomain is catalog-only (events gateway returns 403). Including
+> it would require headless-browser scraping. SCCLD already covers several nearby
+> South Bay cities (Cupertino, Campbell, Los Altos, Milpitas, …).
 
 Events are normalized into a common shape with a shared **age-band taxonomy** (infant → toddler →
 preschool → school-age → tween/teen) and tagged with their library branch's location so they can be
