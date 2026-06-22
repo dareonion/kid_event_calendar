@@ -25,6 +25,16 @@
           hx-get="/events" hx-target="#results" hx-swap="innerHTML"
           hx-trigger="change, keyup delay:400ms from:input[name=age], keyup delay:400ms from:input[name=keyword]">
 
+      <fieldset class="view-toggle">
+        <legend>View</legend>
+        <label class="check">
+          <input type="radio" name="view" value="list" {% if selected.view != 'map' %}checked{% endif %} /> List
+        </label>
+        <label class="check">
+          <input type="radio" name="view" value="map" {% if selected.view == 'map' %}checked{% endif %} /> Map
+        </label>
+      </fieldset>
+
       <fieldset>
         <legend>Child's age</legend>
         <input type="text" name="age" value="{{ selected.age }}"
@@ -93,7 +103,7 @@
     </form>
 
     <main id="results" class="results">
-      {% include "_event_list.html" %}
+      {% if selected.view == 'map' %}{% include "_event_map.html" %}{% else %}{% include "_event_list.html" %}{% endif %}
     </main>
   </div>
   {% endif %}

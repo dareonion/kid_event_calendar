@@ -56,7 +56,11 @@ uv run kid-events serve
 ```
 
 Open <http://localhost:8000> and use the sidebar to filter by child age, distance radius, date range,
-source library, and keyword.
+source library, and keyword. Toggle between a **List** and a **Map** view — the map (Leaflet +
+OpenStreetMap) drops one marker per city, sized by event count, with a popup listing that city's
+events. Markers sit at city centroids (events are located by city, not exact address).
+
+> Port 8000 in use? Pass another: `uv run kid-events serve --port 8001`.
 
 The web app reads the cached `events.json`; it never fetches sources on a page load. Re-run
 `kid-events refresh` (or use the **Refresh** button in the UI) to pull fresh data.

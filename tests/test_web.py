@@ -25,6 +25,8 @@ def client(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> TestClient:
         start=start + timedelta(days=1, hours=10),
         location_name="Mountain View Public Library",
         city="Mountain View",
+        lat=37.39,
+        lon=-122.08,
         distance_mi=0.2,
         age_bands=[AgeBand.INFANT],
         age_inferred=True,
@@ -36,6 +38,8 @@ def client(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> TestClient:
         title="LEGO Club",
         start=start + timedelta(days=2, hours=15),
         city="San Jose",
+        lat=37.34,
+        lon=-121.89,
         distance_mi=11.0,
         age_bands=[AgeBand.SCHOOL_AGE],
     )
@@ -83,3 +87,13 @@ def test_keyword_filter(client: TestClient):
     response = client.get("/events", params={"keyword": "lego"})
     assert "LEGO Club" in response.text
     assert "Baby Storytime" not in response.text
+
+
+def test_map_view(client: TestClient):
+    response = client.get("/events", params={"view": "map"})
+    assert response.status_code == 200
+    assert 'id="map"' in response.text
+    assert 'id="map-data"' in response.text  # events embedded as JSON for Leaflet
+    # Both located events' cities should appear in the embedded marker data.
+    assert "Mountain View" in response.text
+    assert "San Jose" in response.text

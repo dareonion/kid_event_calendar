@@ -1,0 +1,17 @@
+<p class="count">
+  {{ events | length }} event{{ '' if events | length == 1 else 's' }} ·
+  {{ map_data.locations | length }} location{{ '' if map_data.locations | length == 1 else 's' }}
+  {%- if map_data.unknown %} · {{ map_data.unknown }} without a mappable location{% endif %}
+</p>
+<p class="hint">Markers are placed at each city's center (events are located by city, not exact
+  address). Click a marker to see its events.</p>
+<div id="map"></div>
+<script id="map-data" type="application/json">{{ map_data | tojson }}</script>
+<script>
+  (function () {
+    var el = document.getElementById("map-data");
+    if (el && window.initEventMap) {
+      window.initEventMap(JSON.parse(el.textContent));
+    }
+  })();
+</script>
