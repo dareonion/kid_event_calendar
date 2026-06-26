@@ -17,10 +17,10 @@ from ..aggregator import aggregate
 from ..branches import load_location_book
 from ..cache import EventCache, cache_path, load_cache, write_cache
 from ..filters import FilterParams, SortKey, apply_filters
-from .build import branch_groups
 from ..geo import RADIUS_PRESETS, radius_miles
 from ..models import BAND_ORDER, AgeBand, Event
 from ..sources.base import PACIFIC
+from .build import branch_groups
 
 MAP_EVENTS_PER_LOCATION = 25
 

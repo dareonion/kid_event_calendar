@@ -8,7 +8,7 @@ import pytest
 
 from kid_events.cache import EventCache, SourceStat
 from kid_events.models import AgeBand, Event
-from kid_events.web.build import branch_groups, build_site
+from kid_events.web.build import branch_groups, branch_key, build_site, library_groups
 
 PT = ZoneInfo("America/Los_Angeles")
 
@@ -92,21 +92,32 @@ def test_embedded_payload_has_events_and_config(tmp_path: Path, cache: EventCach
     assert any(s["key"] == "sunnyvale" and s["error"] for s in payload["sources"])
 
 
-def test_branch_groups_and_dropdown(tmp_path: Path, cache: EventCache) -> None:
+def test_branch_groups_for_live_app(cache: EventCache) -> None:
+    # branch_groups still powers the live (serve) app's single-branch dropdown.
     groups = branch_groups(cache)
     sources = {g["source"] for g in groups}
-    # Only sources that have a named branch show up.
     assert "Mountain View Public Library" in sources
     assert "Sunnyvale Public Library" not in sources  # no named branch
-    mv = next(g for g in groups if g["source"] == "Mountain View Public Library")
-    assert any(
-        o["value"] == "Mountain View Public Library" and o["label"].endswith("(1)")
-        for o in mv["options"]
-    )
+
+
+def test_library_groups_and_picker(tmp_path: Path, cache: EventCache) -> None:
+    groups = library_groups(cache)
+    by_key = {b["key"]: b for g in groups for b in g["branches"]}
+
+    # Named branch -> system-scoped key.
+    mv_key = branch_key("mountainview", "Mountain View Public Library")
+    assert by_key[mv_key]["label"] == "Mountain View Public Library"
+    assert by_key[mv_key]["count"] == 1
+    # The unnamed-location LEGO event falls into San Jose's "other" bucket.
+    other_key = branch_key("sjpl", "")
+    assert by_key[other_key]["label"] == "Other locations"
+    # Sunnyvale has no events here, so it is omitted entirely.
+    assert all(g["source_key"] != "sunnyvale" for g in groups)
 
     html = (build_site(tmp_path / "site", cache=cache) / "index.html").read_text()
-    assert 'name="branch"' in html
-    assert "<optgroup" in html
+    assert 'name="libs"' in html
+    assert mv_key in html  # branch checkbox value
+    assert "lib-fav-btn" in html  # favorites control present
 
 
 def test_build_without_cache_raises(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

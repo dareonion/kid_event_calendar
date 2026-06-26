@@ -62,29 +62,34 @@
         </select>
       </fieldset>
 
-      <fieldset>
-        <legend>Library</legend>
-        {% for stat in sources %}
-          <label class="check">
-            <input type="checkbox" name="sources" value="{{ stat.key }}" checked />
-            {{ stat.name }}
-            <span class="muted">{% if stat.error %}(error){% else %}({{ stat.count }}){% endif %}</span>
-          </label>
-        {% endfor %}
-      </fieldset>
-
-      <fieldset>
-        <legend>Specific library</legend>
-        <select name="branch">
-          <option value="">All libraries</option>
-          {% for group in branch_groups %}
-            <optgroup label="{{ group.source }}">
-              {% for opt in group.options %}
-                <option value="{{ opt.value }}">{{ opt.label }}</option>
+      <fieldset class="libraries">
+        <legend>Libraries</legend>
+        <div class="lib-controls">
+          <button type="button" data-lib-action="all">All</button>
+          <button type="button" data-lib-action="none">None</button>
+          <button type="button" data-lib-action="favorites" id="lib-fav-btn">★ Favorites</button>
+        </div>
+        <p class="hint">★ a library to make it a favorite — your favorites are shown by default on
+          every visit (saved on this device).</p>
+        <div class="lib-list">
+          {% for group in library_groups %}
+            <div class="lib-group" data-source="{{ group.source_key }}">
+              <label class="lib-group-head">
+                <input type="checkbox" class="lib-group-check" checked /> {{ group.source }}
+              </label>
+              {% for b in group.branches %}
+                <div class="lib-row">
+                  <label class="check">
+                    <input type="checkbox" name="libs" value="{{ b.key }}" checked />
+                    {{ b.label }} <span class="muted">({{ b.count }})</span>
+                  </label>
+                  <button type="button" class="star" data-key="{{ b.key }}"
+                          aria-label="Toggle favorite" aria-pressed="false">☆</button>
+                </div>
               {% endfor %}
-            </optgroup>
+            </div>
           {% endfor %}
-        </select>
+        </div>
       </fieldset>
 
       <fieldset>

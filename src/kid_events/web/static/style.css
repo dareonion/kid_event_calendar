@@ -138,6 +138,49 @@ code { background: #eef0f3; padding: 0.1rem 0.3rem; border-radius: 4px; }
 .view-toggle { display: flex; gap: 1rem; align-items: center; }
 .view-toggle .check { margin-top: 0; }
 
+/* Libraries multi-select picker */
+.lib-controls { display: flex; gap: 0.35rem; margin-bottom: 0.4rem; }
+.lib-controls button {
+  font-size: 0.78rem;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--border);
+  background: #fff;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.lib-controls button:hover:not(:disabled) { border-color: var(--accent); }
+.lib-controls button:disabled { opacity: 0.5; cursor: default; }
+.lib-list {
+  max-height: 280px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #fff;
+  padding: 0.4rem 0.55rem;
+}
+.lib-group + .lib-group { margin-top: 0.55rem; border-top: 1px solid var(--border); padding-top: 0.45rem; }
+.lib-group-head {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: 600;
+  font-size: 0.82rem;
+  margin: 0 0 0.25rem;
+}
+.lib-row { display: flex; align-items: center; gap: 0.3rem; padding-left: 0.4rem; }
+.lib-row .check { margin-top: 0.2rem; flex: 1; }
+.star {
+  border: 0;
+  background: none;
+  cursor: pointer;
+  font-size: 0.95rem;
+  line-height: 1;
+  color: #cbd5e1;
+  padding: 0 0.15rem;
+}
+.star:hover { color: #f59e0b; }
+.star.is-fav { color: #f59e0b; }
+
 /* Map view */
 #map {
   height: 70vh;

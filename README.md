@@ -56,7 +56,7 @@ uv run kid-events serve
 ```
 
 Open <http://localhost:8000> and use the sidebar to filter by child age, distance radius, date range,
-source library, a specific branch, and keyword. Toggle between a **List** and a **Map** view — the map (Leaflet +
+library, and keyword. Toggle between a **List** and a **Map** view — the map (Leaflet +
 OpenStreetMap) drops one marker per city, sized by event count, with a popup listing that city's
 events. Markers sit at city centroids (events are located by city, not exact address).
 
@@ -79,6 +79,10 @@ uv run kid-events build           # render it into ./site/
 does all filtering — age, distance, date, library, keyword, sort, list/map — **in the browser**, so it
 works on any static host with no backend. With JavaScript disabled it degrades to a plain chronological
 listing of every event.
+
+The **Libraries** picker is a multi-select grouped by system; ★ any branches to make them favorites.
+Favorites are stored in your browser (`localStorage`) and become the default selection every time you
+open the page, so you can keep a short list of go-to libraries without re-filtering each visit.
 
 ### Daily GitHub Pages publish
 

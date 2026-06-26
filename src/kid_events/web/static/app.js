@@ -104,11 +104,16 @@
       radius: form.elements.radius.value,
       days: parseInt(form.elements.days.value, 10) || data.default_days,
       keyword: form.elements.keyword.value.trim().toLowerCase(),
-      sources: checkedValues("sources"),
-      branch: form.elements.branch.value,
+      libs: checkedValues("libs"),
       hideUnknown: form.elements.hide_unknown.checked,
       sort: form.elements.sort.value,
     };
+  }
+
+  // System-scoped key matching build.py's branch_key(); events with no named
+  // location share a per-system "other" bucket.
+  function branchKey(ev) {
+    return ev.source_key + "::" + (ev.location_name || "__other__");
   }
 
   function desiredBands(state) {
@@ -130,12 +135,9 @@
     if (miles === undefined) miles = null;
     var windowStart = parseLocal(data.window_start);
     var dateTo = new Date(windowStart.getTime() + state.days * 86400000);
-    // Empty source selection means "no source filter" (matches the live app).
-    var sourceSet = null;
-    if (state.sources.length) {
-      sourceSet = {};
-      state.sources.forEach(function (s) { sourceSet[s] = true; });
-    }
+    // Pure set membership: every event has a branch key, every key has a box.
+    var libSet = {};
+    state.libs.forEach(function (k) { libSet[k] = true; });
 
     var matched = events.filter(function (ev) {
       if (desired) {
@@ -151,8 +153,7 @@
       }
       var start = parseLocal(ev.start);
       if (start < windowStart || start > dateTo) return false;
-      if (sourceSet && !sourceSet[ev.source_key]) return false;
-      if (state.branch && ev.location_name !== state.branch) return false;
+      if (!libSet[branchKey(ev)]) return false;
       if (state.keyword) {
         var hay = (ev.title + "\n" + (ev.description || "")).toLowerCase();
         if (hay.indexOf(state.keyword) === -1) return false;
@@ -299,12 +300,103 @@
     };
   }
 
-  form.addEventListener("change", render);
+  // --- favorites + library picker -----------------------------------------
+  var FAV_KEY = "kec:favorites";
+  var libBoxes = Array.prototype.slice.call(form.querySelectorAll('input[name="libs"]'));
+  var allLibKeys = libBoxes.map(function (b) { return b.value; });
+  var favBtn = document.getElementById("lib-fav-btn");
+
+  var favorites = {};
+  (function loadFavorites() {
+    try {
+      var raw = window.localStorage.getItem(FAV_KEY);
+      var arr = raw ? JSON.parse(raw) : [];
+      if (Array.isArray(arr)) arr.forEach(function (k) { favorites[k] = true; });
+    } catch (e) { /* localStorage unavailable — favorites just won't persist */ }
+  })();
+  function saveFavorites() {
+    try {
+      window.localStorage.setItem(FAV_KEY, JSON.stringify(Object.keys(favorites)));
+    } catch (e) { /* ignore */ }
+  }
+  // Only favorites that still exist in today's data.
+  function favoritesInData() {
+    return allLibKeys.filter(function (k) { return favorites[k]; });
+  }
+
+  function setChecked(keys) {
+    var want = {};
+    keys.forEach(function (k) { want[k] = true; });
+    libBoxes.forEach(function (b) { b.checked = !!want[b.value]; });
+    syncGroups();
+  }
+  function syncGroups() {
+    form.querySelectorAll(".lib-group").forEach(function (group) {
+      var boxes = group.querySelectorAll('input[name="libs"]');
+      var on = 0;
+      boxes.forEach(function (b) { if (b.checked) on++; });
+      var head = group.querySelector(".lib-group-check");
+      head.checked = on === boxes.length;
+      head.indeterminate = on > 0 && on < boxes.length;
+    });
+  }
+  function syncStars() {
+    form.querySelectorAll(".star").forEach(function (s) {
+      var fav = !!favorites[s.dataset.key];
+      s.textContent = fav ? "★" : "☆";
+      s.classList.toggle("is-fav", fav);
+      s.setAttribute("aria-pressed", fav ? "true" : "false");
+    });
+    if (favBtn) favBtn.disabled = favoritesInData().length === 0;
+  }
+
+  // A change to any filter re-renders; library checkboxes also keep the group
+  // header (and a group header toggles its branches) in sync first.
+  form.addEventListener("change", function (e) {
+    var t = e.target;
+    if (t.classList && t.classList.contains("lib-group-check")) {
+      t.closest(".lib-group")
+        .querySelectorAll('input[name="libs"]')
+        .forEach(function (b) { b.checked = t.checked; });
+    }
+    if (t.name === "libs" || (t.classList && t.classList.contains("lib-group-check"))) {
+      syncGroups();
+    }
+    render();
+  });
+
+  // All / None / Favorites buttons and the per-branch star toggles.
+  form.addEventListener("click", function (e) {
+    var action = e.target.closest("[data-lib-action]");
+    if (action) {
+      var which = action.getAttribute("data-lib-action");
+      if (which === "all") setChecked(allLibKeys);
+      else if (which === "none") setChecked([]);
+      else if (which === "favorites") setChecked(favoritesInData());
+      render();
+      return;
+    }
+    var star = e.target.closest(".star");
+    if (star) {
+      var key = star.dataset.key;
+      if (favorites[key]) delete favorites[key];
+      else favorites[key] = true;
+      saveFavorites();
+      syncStars();
+      // Starring sets the default for next visit; it doesn't change the current view.
+    }
+  });
+
   var debounced = debounce(render, 300);
   ["age", "keyword"].forEach(function (name) {
     var el = form.elements[name];
     if (el) el.addEventListener("input", debounced);
   });
 
+  // Initial selection: your favorites if you have any (in today's data),
+  // otherwise every library.
+  var startFavs = favoritesInData();
+  setChecked(startFavs.length ? startFavs : allLibKeys);
+  syncStars();
   render();
 })();

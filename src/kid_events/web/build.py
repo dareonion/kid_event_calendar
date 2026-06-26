@@ -91,10 +91,51 @@ def branch_groups(cache: EventCache) -> list[dict[str, Any]]:
         counter = counts.get(stat.name, Counter())
         if not counter:
             continue
-        options = [
-            {"value": name, "label": f"{name} ({n})"} for name, n in sorted(counter.items())
-        ]
+        options = [{"value": name, "label": f"{name} ({n})"} for name, n in sorted(counter.items())]
         groups.append({"source": stat.name, "options": options})
+    return groups
+
+
+_OTHER = "__other__"
+
+
+def branch_key(source_key: str, location_name: str) -> str:
+    """Stable, system-scoped key for a branch (the multi-select value).
+
+    Scoping by source avoids collisions when two systems share a branch name
+    (e.g. both have a "Children's Library"). Events with no named location share
+    a per-system "other" bucket so every event is selectable.
+    """
+    return f"{source_key}::{location_name or _OTHER}"
+
+
+def library_groups(cache: EventCache) -> list[dict[str, Any]]:
+    """Branches grouped by system for the multi-select "Libraries" picker.
+
+    Every event maps to exactly one branch ``key`` here (named branch, or the
+    system's "Other locations" bucket), so the picker can act as a pure
+    set-membership filter. Grouped in registry (sidebar) order.
+    """
+    counts: dict[str, Counter[str]] = {}
+    for event in cache.events:
+        counts.setdefault(event.source_key, Counter())[event.location_name or _OTHER] += 1
+
+    groups: list[dict[str, Any]] = []
+    for stat in cache.sources:
+        counter = counts.get(stat.key)
+        if not counter:
+            continue
+        # Named branches alphabetically; the "other" bucket last.
+        ordered = sorted(counter.items(), key=lambda kv: (kv[0] == _OTHER, kv[0].lower()))
+        branches = [
+            {
+                "key": branch_key(stat.key, "" if name == _OTHER else name),
+                "label": "Other locations" if name == _OTHER else name,
+                "count": n,
+            }
+            for name, n in ordered
+        ]
+        groups.append({"source": stat.name, "source_key": stat.key, "branches": branches})
     return groups
 
 
@@ -136,8 +177,7 @@ def render_index(cache: EventCache) -> str:
         default_radius=DEFAULT_RADIUS,
         day_options=DAY_OPTIONS,
         default_days=DEFAULT_DAYS,
-        sources=cache.sources,
-        branch_groups=branch_groups(cache),
+        library_groups=library_groups(cache),
         notes=cache.notes,
         # The <noscript> fallback lists every event, chronologically.
         events=sorted(cache.events, key=lambda event: event.start),
