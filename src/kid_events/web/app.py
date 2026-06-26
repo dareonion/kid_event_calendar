@@ -17,6 +17,7 @@ from ..aggregator import aggregate
 from ..branches import load_location_book
 from ..cache import EventCache, cache_path, load_cache, write_cache
 from ..filters import FilterParams, SortKey, apply_filters
+from .build import branch_groups
 from ..geo import RADIUS_PRESETS, radius_miles
 from ..models import BAND_ORDER, AgeBand, Event
 from ..sources.base import PACIFIC
@@ -59,6 +60,7 @@ def filter_query(
     days: int = 14,
     keyword: str = "",
     sources: list[str] = Query(default=[]),
+    branch: str = "",
     hide_unknown: bool = False,
     sort: str = "date",
     view: str = "list",
@@ -71,6 +73,7 @@ def filter_query(
         "days": days,
         "keyword": keyword,
         "sources": sources,
+        "branch": branch,
         "hide_unknown": hide_unknown,
         "sort": sort,
         "view": "map" if view == "map" else "list",
@@ -84,6 +87,7 @@ _DEFAULT_QUERY: dict[str, Any] = {
     "days": 14,
     "keyword": "",
     "sources": [],
+    "branch": "",
     "hide_unknown": False,
     "sort": "date",
     "view": "list",
@@ -104,6 +108,7 @@ def _build_params(query: dict[str, Any]) -> FilterParams:
         date_to=start + timedelta(days=query["days"]),
         keyword=str(query["keyword"]).strip(),
         sources=set(query["sources"]),
+        branch=str(query["branch"]).strip(),
         sort=SortKey(valid_sort),
     )
 
@@ -116,6 +121,7 @@ def _selected(query: dict[str, Any]) -> dict[str, Any]:
         "days": query["days"],
         "keyword": query["keyword"],
         "sources": set(query["sources"]),
+        "branch": query["branch"],
         "hide_unknown": query["hide_unknown"],
         "sort": query["sort"],
         "view": query["view"],
@@ -184,6 +190,7 @@ def _context(request: Request, query: dict[str, Any]) -> dict[str, Any]:
         "all_bands": SELECTABLE_BANDS,
         "radius_presets": RADIUS_PRESETS,
         "day_options": DAY_OPTIONS,
+        "branch_groups": branch_groups(cache) if cache else [],
         "selected": _selected(query),
     }
     if query["view"] == "map":

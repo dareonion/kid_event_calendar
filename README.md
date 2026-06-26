@@ -56,7 +56,7 @@ uv run kid-events serve
 ```
 
 Open <http://localhost:8000> and use the sidebar to filter by child age, distance radius, date range,
-source library, and keyword. Toggle between a **List** and a **Map** view — the map (Leaflet +
+source library, a specific branch, and keyword. Toggle between a **List** and a **Map** view — the map (Leaflet +
 OpenStreetMap) drops one marker per city, sized by event count, with a popup listing that city's
 events. Markers sit at city centroids (events are located by city, not exact address).
 

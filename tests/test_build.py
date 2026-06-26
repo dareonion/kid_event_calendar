@@ -8,7 +8,7 @@ import pytest
 
 from kid_events.cache import EventCache, SourceStat
 from kid_events.models import AgeBand, Event
-from kid_events.web.build import build_site
+from kid_events.web.build import branch_groups, build_site
 
 PT = ZoneInfo("America/Los_Angeles")
 
@@ -90,6 +90,23 @@ def test_embedded_payload_has_events_and_config(tmp_path: Path, cache: EventCach
     assert any(b["value"] == "infant" and b["min"] == 0 for b in payload["bands"])
     # The errored source is still listed so the user knows it was attempted.
     assert any(s["key"] == "sunnyvale" and s["error"] for s in payload["sources"])
+
+
+def test_branch_groups_and_dropdown(tmp_path: Path, cache: EventCache) -> None:
+    groups = branch_groups(cache)
+    sources = {g["source"] for g in groups}
+    # Only sources that have a named branch show up.
+    assert "Mountain View Public Library" in sources
+    assert "Sunnyvale Public Library" not in sources  # no named branch
+    mv = next(g for g in groups if g["source"] == "Mountain View Public Library")
+    assert any(
+        o["value"] == "Mountain View Public Library" and o["label"].endswith("(1)")
+        for o in mv["options"]
+    )
+
+    html = (build_site(tmp_path / "site", cache=cache) / "index.html").read_text()
+    assert 'name="branch"' in html
+    assert "<optgroup" in html
 
 
 def test_build_without_cache_raises(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

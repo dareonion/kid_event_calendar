@@ -29,6 +29,7 @@ class FilterParams(BaseModel):
     date_to: datetime | None = None
     keyword: str = ""
     sources: set[str] = Field(default_factory=set)
+    branch: str = ""
     sort: SortKey = SortKey.DATE
 
     def desired_bands(self) -> set[AgeBand] | None:
@@ -61,6 +62,9 @@ def _matches(event: Event, params: FilterParams, desired: set[AgeBand] | None) -
         return False
 
     if params.sources and event.source_key not in params.sources:
+        return False
+
+    if params.branch and event.location_name != params.branch:
         return False
 
     if params.keyword:

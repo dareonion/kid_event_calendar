@@ -89,6 +89,18 @@ def test_keyword_filter(client: TestClient):
     assert "Baby Storytime" not in response.text
 
 
+def test_branch_filter(client: TestClient):
+    response = client.get("/events", params={"branch": "Mountain View Public Library"})
+    assert "Baby Storytime" in response.text  # its location_name matches
+    assert "LEGO Club" not in response.text  # different branch
+
+
+def test_branch_dropdown_present(client: TestClient):
+    response = client.get("/")
+    assert 'name="branch"' in response.text
+    assert "Mountain View Public Library" in response.text  # offered as a branch option
+
+
 def test_map_view(client: TestClient):
     response = client.get("/events", params={"view": "map"})
     assert response.status_code == 200

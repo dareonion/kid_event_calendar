@@ -105,6 +105,7 @@
       days: parseInt(form.elements.days.value, 10) || data.default_days,
       keyword: form.elements.keyword.value.trim().toLowerCase(),
       sources: checkedValues("sources"),
+      branch: form.elements.branch.value,
       hideUnknown: form.elements.hide_unknown.checked,
       sort: form.elements.sort.value,
     };
@@ -151,6 +152,7 @@
       var start = parseLocal(ev.start);
       if (start < windowStart || start > dateTo) return false;
       if (sourceSet && !sourceSet[ev.source_key]) return false;
+      if (state.branch && ev.location_name !== state.branch) return false;
       if (state.keyword) {
         var hay = (ev.title + "\n" + (ev.description || "")).toLowerCase();
         if (hay.indexOf(state.keyword) === -1) return false;

@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import json
 import shutil
+from collections import Counter
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -73,6 +74,30 @@ def _band_meta() -> list[dict[str, Any]]:
     ]
 
 
+def branch_groups(cache: EventCache) -> list[dict[str, Any]]:
+    """Distinct branches (``location_name``) grouped by library system.
+
+    Powers the "specific library" dropdown so events can be filtered to one
+    branch, not just its system. Grouped in registry (sidebar) order; sources
+    with no named branch (e.g. Sunnyvale) are omitted.
+    """
+    counts: dict[str, Counter[str]] = {stat.name: Counter() for stat in cache.sources}
+    for event in cache.events:
+        if event.location_name:
+            counts.setdefault(event.source, Counter())[event.location_name] += 1
+
+    groups: list[dict[str, Any]] = []
+    for stat in cache.sources:
+        counter = counts.get(stat.name, Counter())
+        if not counter:
+            continue
+        options = [
+            {"value": name, "label": f"{name} ({n})"} for name, n in sorted(counter.items())
+        ]
+        groups.append({"source": stat.name, "options": options})
+    return groups
+
+
 def build_payload(cache: EventCache) -> dict[str, Any]:
     """Everything the client-side filter needs, as a JSON-serializable dict."""
     book = load_location_book()
@@ -112,6 +137,7 @@ def render_index(cache: EventCache) -> str:
         day_options=DAY_OPTIONS,
         default_days=DEFAULT_DAYS,
         sources=cache.sources,
+        branch_groups=branch_groups(cache),
         notes=cache.notes,
         # The <noscript> fallback lists every event, chronologically.
         events=sorted(cache.events, key=lambda event: event.start),

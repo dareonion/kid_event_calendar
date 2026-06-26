@@ -84,6 +84,20 @@
       </fieldset>
 
       <fieldset>
+        <legend>Specific library</legend>
+        <select name="branch">
+          <option value="" {% if not selected.branch %}selected{% endif %}>All libraries</option>
+          {% for group in branch_groups %}
+            <optgroup label="{{ group.source }}">
+              {% for opt in group.options %}
+                <option value="{{ opt.value }}" {% if opt.value == selected.branch %}selected{% endif %}>{{ opt.label }}</option>
+              {% endfor %}
+            </optgroup>
+          {% endfor %}
+        </select>
+      </fieldset>
+
+      <fieldset>
         <legend>Keyword</legend>
         <input type="text" name="keyword" value="{{ selected.keyword }}"
                placeholder="storytime, lego…" autocomplete="off" />

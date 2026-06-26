@@ -53,11 +53,19 @@ body {
   padding: 1.5rem;
   align-items: start;
 }
-@media (max-width: 720px) { .layout { grid-template-columns: 1fr; } }
+@media (max-width: 720px) {
+  .layout { grid-template-columns: 1fr; }
+  /* Stacked above the results on narrow screens: let it flow, don't pin/cap. */
+  .sidebar { position: static; max-height: none; overflow: visible; }
+}
 
 .sidebar {
   position: sticky;
   top: 1rem;
+  /* Cap to the viewport so a tall filter list scrolls inside the sidebar
+     instead of being clipped off the bottom of the sticky column. */
+  max-height: calc(100vh - 2rem);
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 0.9rem;

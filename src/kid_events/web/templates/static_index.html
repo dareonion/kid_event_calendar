@@ -74,6 +74,20 @@
       </fieldset>
 
       <fieldset>
+        <legend>Specific library</legend>
+        <select name="branch">
+          <option value="">All libraries</option>
+          {% for group in branch_groups %}
+            <optgroup label="{{ group.source }}">
+              {% for opt in group.options %}
+                <option value="{{ opt.value }}">{{ opt.label }}</option>
+              {% endfor %}
+            </optgroup>
+          {% endfor %}
+        </select>
+      </fieldset>
+
+      <fieldset>
         <legend>Keyword</legend>
         <input type="text" name="keyword" placeholder="storytime, lego…" />
       </fieldset>
