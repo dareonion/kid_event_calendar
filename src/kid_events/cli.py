@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+from pathlib import Path
 
 from .aggregator import aggregate
 from .cache import write_cache
@@ -19,6 +20,13 @@ def cmd_refresh(args: argparse.Namespace) -> None:
     for note in cache.notes:
         print(f"Note: {note}")
     print(f"Wrote {path}")
+
+
+def cmd_build(args: argparse.Namespace) -> None:
+    from .web.build import build_site
+
+    out = build_site(Path(args.out))
+    print(f"Built static site in {out}/ (open {out}/index.html)")
 
 
 def cmd_serve(args: argparse.Namespace) -> None:
@@ -39,6 +47,10 @@ def main() -> None:
     refresh = sub.add_parser("refresh", help="Fetch sources and rebuild the event cache")
     refresh.add_argument("--days", type=int, default=14, help="Days ahead to include (default 14)")
     refresh.set_defaults(func=cmd_refresh)
+
+    build = sub.add_parser("build", help="Render the cache into a static site (for publishing)")
+    build.add_argument("--out", default="site", help="Output directory (default: site)")
+    build.set_defaults(func=cmd_build)
 
     serve = sub.add_parser("serve", help="Run the web app")
     serve.add_argument("--host", default="127.0.0.1")

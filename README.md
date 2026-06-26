@@ -65,6 +65,34 @@ events. Markers sit at city centroids (events are located by city, not exact add
 The web app reads the cached `events.json`; it never fetches sources on a page load. Re-run
 `kid-events refresh` (or use the **Refresh** button in the UI) to pull fresh data.
 
+## Publishing a static page
+
+The `serve` app needs a running server. To publish a browseable listing to a static host instead,
+build a self-contained page:
+
+```sh
+uv run kid-events refresh         # produce data/cache/events.json
+uv run kid-events build           # render it into ./site/
+```
+
+`build` writes `site/index.html` (plus `site/static/`), which embeds the whole event set as JSON and
+does all filtering — age, distance, date, library, keyword, sort, list/map — **in the browser**, so it
+works on any static host with no backend. With JavaScript disabled it degrades to a plain chronological
+listing of every event.
+
+### Daily GitHub Pages publish
+
+`.github/workflows/publish.yml` refreshes and rebuilds the page every morning (Pacific) and deploys
+`site/` to **GitHub Pages**, so a public URL stays current automatically. It also runs on demand
+(**Actions → Publish calendar → Run workflow**) and on every push to `main`.
+
+To enable it: in the repo's **Settings → Pages**, set **Source** to **GitHub Actions**. The published
+URL is `https://<user>.github.io/<repo>/`.
+
+> CI publishes the four feed-based libraries. **Sunnyvale** needs a headful browser (its calendar is
+> bot-protected — see above), which the GitHub runner can't provide, so it is reported as errored in the
+> sidebar and skipped. Run `refresh` + `build` locally with the `sunnyvale` extra to include it.
+
 ## Development
 
 ```sh

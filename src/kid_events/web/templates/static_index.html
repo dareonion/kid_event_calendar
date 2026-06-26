@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Kid Event Calendar</title>
+  <link rel="stylesheet" href="static/leaflet.css" />
+  <link rel="stylesheet" href="static/style.css" />
+  <script src="static/leaflet.js"></script>
+  <script src="static/map.js"></script>
+  <script src="static/app.js" defer></script>
+</head>
+<body>
+<div id="page">
+  <header class="topbar">
+    <div>
+      <h1>Kid Event Calendar</h1>
+      <p class="subtitle">Upcoming library events for kids near Mountain View, CA</p>
+    </div>
+    <div class="refresh">
+      <span class="muted">Updated {{ generated_label }} · rebuilt daily</span>
+    </div>
+  </header>
+
+  <div class="layout">
+    <form id="filters" class="sidebar" autocomplete="off">
+      <fieldset class="view-toggle">
+        <legend>View</legend>
+        <label class="check"><input type="radio" name="view" value="list" checked /> List</label>
+        <label class="check"><input type="radio" name="view" value="map" /> Map</label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Child's age</legend>
+        <input type="text" name="age" placeholder="e.g. 8 months, 3 years" />
+        <p class="hint">or pick age groups:</p>
+        {% for band in selectable_bands %}
+          <label class="check">
+            <input type="checkbox" name="bands" value="{{ band.value }}" /> {{ band.label }}
+          </label>
+        {% endfor %}
+      </fieldset>
+
+      <fieldset>
+        <legend>Distance from Mountain View</legend>
+        <select name="radius">
+          {% for key, preset in radius_presets.items() %}
+            <option value="{{ key }}" {% if key == default_radius %}selected{% endif %}>{{ preset[0] }}</option>
+          {% endfor %}
+        </select>
+        <label class="check">
+          <input type="checkbox" name="hide_unknown" value="true" /> Hide unknown-location events
+        </label>
+      </fieldset>
+
+      <fieldset>
+        <legend>When</legend>
+        <select name="days">
+          {% for value, label in day_options %}
+            <option value="{{ value }}" {% if value == default_days %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </fieldset>
+
+      <fieldset>
+        <legend>Library</legend>
+        {% for stat in sources %}
+          <label class="check">
+            <input type="checkbox" name="sources" value="{{ stat.key }}" checked />
+            {{ stat.name }}
+            <span class="muted">{% if stat.error %}(error){% else %}({{ stat.count }}){% endif %}</span>
+          </label>
+        {% endfor %}
+      </fieldset>
+
+      <fieldset>
+        <legend>Keyword</legend>
+        <input type="text" name="keyword" placeholder="storytime, lego…" />
+      </fieldset>
+
+      <fieldset>
+        <legend>Sort by</legend>
+        <select name="sort">
+          <option value="date" selected>Date</option>
+          <option value="distance">Distance</option>
+        </select>
+      </fieldset>
+
+      {% if notes %}<p class="note">{{ notes | join(' ') }}</p>{% endif %}
+    </form>
+
+    <main id="results" class="results">
+      <noscript>
+        <p class="count">{{ events | length }} event{{ '' if events | length == 1 else 's' }}
+          · enable JavaScript to filter, search, and see the map.</p>
+        {% for event in events %}
+          {% if loop.first or loop.previtem.start.date() != event.start.date() %}
+            <h2 class="day-heading">{{ event.start | day_label }}</h2>
+          {% endif %}
+          <article class="card">
+            <div class="card-time">
+              <span class="time">{{ event.start | time_label }}</span>
+              {% if event.distance_mi is not none %}
+                <span class="distance">{{ "%.1f"|format(event.distance_mi) }} mi</span>
+              {% endif %}
+            </div>
+            <div class="card-body">
+              <h3>
+                {% if event.url %}<a href="{{ event.url }}" target="_blank" rel="noopener">{{ event.title }}</a>
+                {% else %}{{ event.title }}{% endif %}
+              </h3>
+              <p class="meta">
+                {{ event.source }}{% if event.location_name %} · {{ event.location_name }}{% endif %}
+                {% if event.city %} · {{ event.city }}{% endif %}
+                {% if event.registration_required %} · <span class="reg">registration</span>{% endif %}
+              </p>
+              <div class="badges">
+                {% for band in event.age_bands %}<span class="badge">{{ band.label }}</span>{% endfor %}
+                {% if event.age_inferred %}<span class="badge inferred" title="Age inferred from title/description">~age</span>{% endif %}
+              </div>
+              {% if event.description %}<p class="desc">{{ event.description | truncate(220) }}</p>{% endif %}
+            </div>
+          </article>
+        {% endfor %}
+      </noscript>
+    </main>
+  </div>
+</div>
+
+<script id="events-data" type="application/json">{{ data_json | safe }}</script>
+</body>
+</html>

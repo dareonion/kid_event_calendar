@@ -11,3 +11,6 @@ build/
 
 # Generated event cache
 data/cache/
+
+# Generated static site (built by `kid-events build`)
+site/

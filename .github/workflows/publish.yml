@@ -1,0 +1,62 @@
+name: Publish calendar
+
+# Rebuilds the event listing and publishes it to GitHub Pages. Runs every
+# morning (Pacific) so the public page stays current, and can be triggered
+# manually or on a push to main.
+on:
+  schedule:
+    # 13:00 UTC = 6am PDT / 5am PST — fresh before the morning.
+    - cron: "0 13 * * *"
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+# Allow the workflow to publish to Pages via OIDC.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Never run two publishes at once; let an in-progress one finish.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Install dependencies
+        run: uv sync --no-dev
+
+      - name: Refresh events
+        # Sunnyvale needs a headful browser (Akamai blocks headless/datacenter
+        # traffic), so it is not installed here; its adapter errors gracefully
+        # and the other libraries still publish.
+        run: uv run kid-events refresh
+
+      - name: Build static site
+        run: uv run kid-events build --out site
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
