@@ -15,7 +15,8 @@
   <header class="topbar">
     <div>
       <h1>Kid Event Calendar</h1>
-      <p class="subtitle">Upcoming library events for kids near Mountain View, CA</p>
+      <p class="subtitle">Upcoming library events for kids near
+        <span id="subtitle-center">Mountain View, CA</span></p>
     </div>
     <div class="refresh">
       <span class="muted">Updated {{ generated_label }} · rebuilt daily</span>
@@ -41,13 +42,35 @@
         {% endfor %}
       </fieldset>
 
+      <fieldset class="center-fs">
+        <legend>Center location</legend>
+        <div class="center-input">
+          <input type="text" id="center-address" placeholder="address or place name" />
+          <button type="button" id="center-set">Set</button>
+        </div>
+        <div class="center-actions">
+          <button type="button" id="center-geo">📍 Use my location</button>
+          <button type="button" id="center-reset">Default</button>
+          <button type="button" id="center-save" title="Save this center for next time">★ Save</button>
+        </div>
+        <p id="center-status" class="hint" aria-live="polite"></p>
+        <div id="center-list" class="center-list"></div>
+        <p class="hint">Address search ©
+          <a href="https://openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>/Nominatim</p>
+      </fieldset>
+
       <fieldset>
-        <legend>Distance from Mountain View</legend>
+        <legend>Distance from <span id="center-name">Mountain View</span></legend>
         <select name="radius">
           {% for key, preset in radius_presets.items() %}
             <option value="{{ key }}" {% if key == default_radius %}selected{% endif %}>{{ preset[0] }}</option>
           {% endfor %}
         </select>
+        <div class="units-toggle">
+          <span class="muted">Units:</span>
+          <label class="check"><input type="radio" name="units" value="mi" checked /> mi</label>
+          <label class="check"><input type="radio" name="units" value="km" /> km</label>
+        </div>
         <label class="check">
           <input type="checkbox" name="hide_unknown" value="true" /> Hide unknown-location events
         </label>

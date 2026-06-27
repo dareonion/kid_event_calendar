@@ -28,14 +28,41 @@ def is_kid_relevant(event: Event) -> bool:
 
 
 def _locate(event: Event, default_city: str) -> Event:
+    """Attach coordinates, city, and distance-from-center to an event.
+
+    Coordinate precedence: (1) coords the source already supplied (BiblioCommons
+    branch points), (2) the committed per-branch table (Mississauga), (3) the
+    event's city centroid. Distance is always from the default (Mountain View)
+    center; a custom center is applied client-side on the published page.
+    """
     book = load_location_book()
-    lat, lon, city = book.resolve(event.location_name, default_city)
+    lat: float | None
+    lon: float | None
+    if event.lat is not None and event.lon is not None:
+        lat, lon = event.lat, event.lon
+        city = event.city or default_city.title()
+        precise = True
+    elif (coord := book.branch_coord(event.source_key, event.location_name)) is not None:
+        lat, lon = coord.lat, coord.lon
+        city = default_city.title()
+        precise = True
+    else:
+        lat, lon, city = book.resolve(event.location_name, default_city)
+        precise = False
     distance = (
         round(haversine_miles(book.center.lat, book.center.lon, lat, lon), 1)
         if lat is not None and lon is not None
         else None
     )
-    return event.model_copy(update={"lat": lat, "lon": lon, "city": city, "distance_mi": distance})
+    return event.model_copy(
+        update={
+            "lat": lat,
+            "lon": lon,
+            "city": city,
+            "distance_mi": distance,
+            "geo_precise": precise,
+        }
+    )
 
 
 def aggregate(days: int = 14, sources: list[Source] | None = None) -> EventCache:

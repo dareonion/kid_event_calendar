@@ -12,7 +12,7 @@ from __future__ import annotations
 from functools import lru_cache
 from importlib.resources import files
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class Coord(BaseModel):
@@ -24,6 +24,13 @@ class LocationBook(BaseModel):
     center_name: str
     center: Coord
     cities: dict[str, Coord]
+    # Optional per-branch coordinates, keyed by source_key then lowercased branch
+    # label, for sources that don't expose real coordinates (e.g. Mississauga).
+    branches: dict[str, dict[str, Coord]] = Field(default_factory=dict)
+
+    def branch_coord(self, source_key: str, label: str) -> Coord | None:
+        """Exact per-branch coordinate for a source's branch label, if known."""
+        return self.branches.get(source_key, {}).get(label.strip().lower())
 
     def resolve(
         self, location_name: str | None, default_city: str = ""

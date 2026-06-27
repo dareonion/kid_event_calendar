@@ -13,6 +13,7 @@ limit to keep the request count down) and keep only events inside the window.
 
 from __future__ import annotations
 
+import math
 import time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, tzinfo
@@ -127,18 +128,42 @@ def _parse_start(value: str, tz: tzinfo = PACIFIC) -> datetime:
     return datetime.fromisoformat(value).replace(tzinfo=tz)
 
 
-def _location_name(definition: dict[str, Any], entities: dict[str, Any]) -> str:
+def _coord(value: Any) -> float | None:
+    """A finite, non-zero coordinate, else None."""
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        number = float(value)
+        if math.isfinite(number) and number != 0:
+            return number
+    return None
+
+
+def _resolve_location(
+    definition: dict[str, Any], entities: dict[str, Any]
+) -> tuple[str, float | None, float | None, str]:
+    """Return ``(name, lat, lon, city)`` for an event's location.
+
+    A branch entity carries a real point in ``mapLocation.centrePoint`` plus a
+    structured ``address`` — trust the point whenever it has finite, non-zero
+    lat/lng (``isGeocoded`` is unreliable and is deliberately ignored). Non-branch
+    places and free-text details have no coordinates.
+    """
     branch_id = definition.get("branchLocationId")
     if branch_id:
         branch = entities.get("locations", {}).get(branch_id, {})
-        if branch.get("name"):
-            return str(branch["name"])
+        name = str(branch.get("name") or "")
+        if name:
+            point = (branch.get("mapLocation") or {}).get("centrePoint") or {}
+            lat, lon = _coord(point.get("lat")), _coord(point.get("lng"))
+            if lat is None or lon is None:
+                lat = lon = None
+            city = str((branch.get("address") or {}).get("city") or "").strip().title()
+            return name, lat, lon, city
     place_id = definition.get("nonBranchLocationId")
     if place_id:
         place = entities.get("places", {}).get(place_id, {})
         if place.get("name"):
-            return str(place["name"])
-    return str(definition.get("locationDetails") or "")
+            return str(place["name"]), None, None, ""
+    return str(definition.get("locationDetails") or ""), None, None, ""
 
 
 def _registration_required(definition: dict[str, Any]) -> bool:
@@ -183,6 +208,7 @@ def parse_page(
             bands = infer_bands_from_title(title, description)
             inferred = bool(bands)
 
+        loc_name, lat, lon, city = _resolve_location(definition, entities)
         events.append(
             Event(
                 id=f"{key}:{event_id}",
@@ -193,7 +219,11 @@ def parse_page(
                 url=f"https://{subdomain}.bibliocommons.com/events/{event_id}",
                 start=_parse_start(definition["start"], tz),
                 end=_parse_start(definition["end"], tz) if definition.get("end") else None,
-                location_name=_location_name(definition, entities),
+                location_name=loc_name,
+                lat=lat,
+                lon=lon,
+                city=city,
+                geo_precise=lat is not None and lon is not None,
                 age_bands=[band for band in BAND_ORDER if band in bands],
                 age_inferred=inferred,
                 registration_required=_registration_required(definition),

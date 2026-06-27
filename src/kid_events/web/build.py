@@ -154,6 +154,7 @@ def build_payload(cache: EventCache) -> dict[str, Any]:
             for key, (label, miles) in RADIUS_PRESETS.items()
         ],
         "default_radius": DEFAULT_RADIUS,
+        "default_units": "mi",
         "day_options": [{"value": value, "label": label} for value, label in DAY_OPTIONS],
         "default_days": DEFAULT_DAYS,
         "sources": [stat.model_dump() for stat in cache.sources],

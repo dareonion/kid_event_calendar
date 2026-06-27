@@ -22,5 +22,26 @@
     "fremont": { "lat": 37.5485, "lon": -121.9886 },
     "toronto": { "lat": 43.6532, "lon": -79.3832 },
     "mississauga": { "lat": 43.589, "lon": -79.6441 }
+  },
+  "branches": {
+    "mississauga": {
+      "burnhamthorpe library": { "lat": 43.62104, "lon": -79.603 },
+      "churchill meadows library": { "lat": 43.55278, "lon": -79.74757 },
+      "clarkson library": { "lat": 43.51151, "lon": -79.65048 },
+      "cooksville library": { "lat": 43.58064, "lon": -79.6175 },
+      "courtneypark library": { "lat": 43.62408, "lon": -79.71005 },
+      "erin meadows library": { "lat": 43.55695, "lon": -79.71753 },
+      "frank mckechnie library": { "lat": 43.61671, "lon": -79.65355 },
+      "hazel mccallion central library": { "lat": 43.58755, "lon": -79.64364 },
+      "lakeview library": { "lat": 43.58342, "lon": -79.5633 },
+      "lorne park library": { "lat": 43.53106, "lon": -79.62781 },
+      "malton library": { "lat": 43.72351, "lon": -79.63889 },
+      "meadowvale library": { "lat": 43.58523, "lon": -79.75566 },
+      "mississauga valley library": { "lat": 43.59694, "lon": -79.6238 },
+      "port credit library": { "lat": 43.55166, "lon": -79.58651 },
+      "sheridan library": { "lat": 43.53053, "lon": -79.65251 },
+      "streetsville library": { "lat": 43.58382, "lon": -79.71691 },
+      "woodlands library": { "lat": 43.56275, "lon": -79.6495 }
+    }
   }
 }

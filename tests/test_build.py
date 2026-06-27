@@ -86,7 +86,9 @@ def test_embedded_payload_has_events_and_config(tmp_path: Path, cache: EventCach
     payload = _embedded_payload(html)
     assert {e["title"] for e in payload["events"]} == {"Baby Storytime", "LEGO Club"}
     assert payload["default_radius"] == "far"
+    assert payload["default_units"] == "mi"
     assert payload["center"]["name"]
+    assert all("geo_precise" in event for event in payload["events"])
     assert any(b["value"] == "infant" and b["min"] == 0 for b in payload["bands"])
     # The errored source is still listed so the user knows it was attempted.
     assert any(s["key"] == "sunnyvale" and s["error"] for s in payload["sources"])

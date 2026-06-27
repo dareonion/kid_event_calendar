@@ -1,8 +1,9 @@
 # Kid Event Calendar
 
-Aggregate upcoming **kid-friendly events** from South Bay / Peninsula public-library calendars into one
-filterable view. Filter by a **child's age** and by **how far you're willing to drive from Mountain
-View, CA**.
+Aggregate upcoming **kid-friendly events** from public-library calendars (South Bay / Peninsula plus
+Toronto & Mississauga) into one filterable view. Filter by a **child's age** and by **distance from any
+address you choose** — type a street address, use your current location, or keep the Mountain View
+default; distances and the map recenter on it.
 
 It pulls from libraries that publish official, no-auth feeds:
 
@@ -39,8 +40,10 @@ It pulls from libraries that publish official, no-auth feeds:
 > and the other libraries still work.
 
 Events are normalized into a common shape with a shared **age-band taxonomy** (infant → toddler →
-preschool → school-age → tween/teen) and tagged with their library branch's location so they can be
-filtered by straight-line distance from a center point.
+preschool → school-age → tween/teen) and tagged with their **branch's coordinates** so they can be
+filtered by straight-line distance from any chosen center. BiblioCommons supplies real per-branch
+coordinates; Mississauga's branches come from a small committed table (`branches` in
+`data/branches.json`); anything else falls back to its city centroid.
 
 ## Requirements
 
@@ -72,8 +75,12 @@ uv run kid-events serve
 
 Open <http://localhost:8000> and use the sidebar to filter by child age, distance radius, date range,
 library, and keyword. Toggle between a **List** and a **Map** view — the map (Leaflet +
-OpenStreetMap) drops one marker per city, sized by event count, with a popup listing that city's
-events. Markers sit at city centroids (events are located by city, not exact address).
+OpenStreetMap) drops one marker per branch, sized by event count, with a popup listing its events.
+
+The **published static page** adds a **Center location** control (the `serve` app stays Mountain-View
+centered): type any address or use your device location to recenter; distances, the distance-sort, and
+the map all recompute from it client-side, in mi or km. Star a center to save it on your device.
+Address lookups use OpenStreetMap's Nominatim; your saved addresses never leave your browser.
 
 > Port 8000 in use? Pass another: `uv run kid-events serve --port 8001`.
 

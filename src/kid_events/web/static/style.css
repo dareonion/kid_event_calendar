@@ -181,6 +181,39 @@ code { background: #eef0f3; padding: 0.1rem 0.3rem; border-radius: 4px; }
 .star:hover { color: #f59e0b; }
 .star.is-fav { color: #f59e0b; }
 
+/* Center location picker */
+.center-input { display: flex; gap: 0.35rem; }
+.center-input input[type="text"] { flex: 1; }
+.center-actions { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.4rem; }
+.center-fs button {
+  font-size: 0.76rem;
+  padding: 0.3rem 0.5rem;
+  border: 1px solid var(--border);
+  background: #fff;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.center-fs button:hover:not(:disabled) { border-color: var(--accent); }
+.center-fs button:disabled { opacity: 0.5; cursor: default; }
+#center-status { margin: 0.35rem 0 0; }
+#center-status.error { color: #b91c1c; }
+.center-list { display: flex; flex-direction: column; gap: 0.25rem; margin-top: 0.4rem; }
+.center-row { display: flex; align-items: center; gap: 0.3rem; }
+.center-row .pick {
+  flex: 1;
+  text-align: left;
+  border: 1px solid var(--border);
+  background: #fff;
+  border-radius: 6px;
+  padding: 0.25rem 0.45rem;
+  cursor: pointer;
+  font-size: 0.82rem;
+}
+.center-row .pick.active { background: var(--accent-soft); border-color: var(--accent); color: #1e40af; }
+.center-row .remove { border: 0; background: none; cursor: pointer; color: var(--muted); font-size: 1rem; line-height: 1; }
+.units-toggle { display: flex; align-items: center; gap: 0.6rem; margin-top: 0.45rem; }
+.units-toggle .check { margin-top: 0; }
+
 /* Map view */
 #map {
   height: 70vh;

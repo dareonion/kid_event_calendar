@@ -1,7 +1,9 @@
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
-from kid_events.aggregator import aggregate, build_window, is_kid_relevant
+from kid_events import aggregator
+from kid_events.aggregator import _locate, aggregate, build_window, is_kid_relevant
+from kid_events.branches import Coord, LocationBook
 from kid_events.models import AgeBand, Event
 
 PT = ZoneInfo("America/Los_Angeles")
@@ -71,3 +73,57 @@ def test_aggregate_filters_and_geocodes():
     assert cache.sources[0].count == 2
     # All registered sources are active now, so there is no disabled-source note.
     assert cache.notes == []
+
+
+def test_locate_precedence(monkeypatch):
+    book = LocationBook(
+        center_name="Mountain View",
+        center=Coord(lat=37.3894, lon=-122.0819),
+        cities={"mountain view": Coord(lat=37.3894, lon=-122.0819)},
+        branches={"miss": {"burnhamthorpe library": Coord(lat=43.6005, lon=-79.6402)}},
+    )
+    monkeypatch.setattr(aggregator, "load_location_book", lambda: book)
+    start = datetime(2026, 6, 20, 10, 0, tzinfo=PT)
+
+    # 1. Coordinates the source already supplied are kept verbatim.
+    supplied = Event(
+        id="1",
+        source="TPL",
+        source_key="tpl",
+        title="x",
+        start=start,
+        location_name="Fairview",
+        lat=43.779,
+        lon=-79.347,
+        city="Toronto",
+        geo_precise=True,
+    )
+    out1 = _locate(supplied, "toronto")
+    assert (out1.lat, out1.lon, out1.city) == (43.779, -79.347, "Toronto")
+    assert out1.geo_precise is True
+    assert out1.distance_mi and out1.distance_mi > 1000  # far from Mountain View
+
+    # 2. A per-branch table entry wins over the city centroid.
+    miss = Event(
+        id="2",
+        source="Mississauga",
+        source_key="miss",
+        title="x",
+        start=start,
+        location_name="Burnhamthorpe Library",
+    )
+    out2 = _locate(miss, "mississauga")
+    assert (out2.lat, out2.lon) == (43.6005, -79.6402)
+    assert out2.city == "Mississauga" and out2.geo_precise is True
+
+    # 3. Otherwise fall back to the city centroid (not precise).
+    mv = Event(
+        id="3",
+        source="MV",
+        source_key="fake",
+        title="x",
+        start=start,
+        location_name="Mountain View Public Library",
+    )
+    out3 = _locate(mv, "mountain view")
+    assert out3.city == "Mountain View" and out3.geo_precise is False

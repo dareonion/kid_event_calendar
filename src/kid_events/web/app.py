@@ -129,7 +129,7 @@ def _selected(query: dict[str, Any]) -> dict[str, Any]:
 
 
 def _map_payload(events: list[Event], params: FilterParams) -> dict[str, Any]:
-    """Group located events by point into one marker each (city centroids)."""
+    """Group located events into one marker per point (branch where known)."""
     book = load_location_book()
     groups: dict[tuple[float, float], dict[str, Any]] = {}
     unknown = 0
@@ -140,7 +140,7 @@ def _map_payload(events: list[Event], params: FilterParams) -> dict[str, Any]:
         group = groups.setdefault(
             (round(event.lat, 5), round(event.lon, 5)),
             {
-                "city": event.city or "Unknown location",
+                "city": event.location_name or event.city or "Unknown location",
                 "lat": event.lat,
                 "lon": event.lon,
                 "events": [],

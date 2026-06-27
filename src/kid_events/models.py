@@ -81,6 +81,9 @@ class Event(BaseModel):
     lat: float | None = None
     lon: float | None = None
     distance_mi: float | None = None
+    # True when lat/lon are a real branch location (from a source or branch table),
+    # False when they fall back to a city centroid (or are unknown).
+    geo_precise: bool = False
     age_bands: list[AgeBand] = Field(default_factory=list)
     age_inferred: bool = False
     registration_required: bool = False

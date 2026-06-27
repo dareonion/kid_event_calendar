@@ -16,11 +16,14 @@ def haversine_miles(lat1: float, lon1: float, lat2: float, lon2: float) -> float
     return 2 * EARTH_RADIUS_MI * math.asin(math.sqrt(a))
 
 
-# key -> (label, max miles). ``None`` miles means "no distance limit".
+# key -> (label, max miles). ``None`` miles means "no distance limit". Labels are
+# center-agnostic (the page lets you pick the center); the static page rewrites them
+# in the chosen unit, so these are the no-JS / live-app fallback text.
 RADIUS_PRESETS: dict[str, tuple[str, float | None]] = {
-    "mv": ("Mountain View only (~5 mi)", 5.0),
-    "near": ("~15 min drive (~10 mi)", 10.0),
-    "far": ("~30 min drive (~20 mi)", 20.0),
+    "mv": ("Within ~5 mi", 5.0),
+    "near": ("Within ~10 mi", 10.0),
+    "far": ("Within ~20 mi", 20.0),
+    "region": ("Within ~50 mi", 50.0),
     "any": ("Any distance", None),
 }
 DEFAULT_RADIUS = "far"

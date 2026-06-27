@@ -27,6 +27,50 @@
     radiusByKey[p.key] = p.miles;
   });
 
+  // --- active center + distance (recomputed client-side) ------------------
+  // distance_mi is baked from the default center at build time; we recompute it
+  // from whatever center the user picks, so it stays correct after recentering.
+  function lsGet(key) {
+    try { var v = window.localStorage.getItem(key); return v ? JSON.parse(v) : null; }
+    catch (e) { return null; }
+  }
+  function lsSet(key, val) {
+    try { window.localStorage.setItem(key, JSON.stringify(val)); } catch (e) { /* ignore */ }
+  }
+  var CENTER_KEY = "kec:center", ADDR_KEY = "kec:addresses", UNITS_KEY = "kec:units";
+
+  var defaultCenter = data.center || { name: "Mountain View", lat: 37.3894, lon: -122.0819 };
+  var activeCenter = defaultCenter;
+  var savedAddresses = lsGet(ADDR_KEY) || []; // [{label,lat,lon}]
+  var units = lsGet(UNITS_KEY) === "km" ? "km" : "mi";
+
+  var EARTH_RADIUS_MI = 3958.7613;
+  function haversineMiles(lat1, lon1, lat2, lon2) {
+    function rad(deg) { return (deg * Math.PI) / 180; }
+    var dphi = rad(lat2 - lat1), dlambda = rad(lon2 - lon1);
+    var a = Math.sin(dphi / 2) * Math.sin(dphi / 2) +
+      Math.cos(rad(lat1)) * Math.cos(rad(lat2)) * Math.sin(dlambda / 2) * Math.sin(dlambda / 2);
+    return 2 * EARTH_RADIUS_MI * Math.asin(Math.min(1, Math.sqrt(a)));
+  }
+  function distanceOf(ev) {
+    if (ev.lat == null || ev.lon == null) return null;
+    return haversineMiles(activeCenter.lat, activeCenter.lon, ev.lat, ev.lon);
+  }
+  function formatDistance(mi) {
+    if (mi == null) return "";
+    return units === "km" ? (mi * 1.609344).toFixed(1) + " km" : mi.toFixed(1) + " mi";
+  }
+  function radiusLabel(miles) {
+    if (miles == null) return "Any distance";
+    return units === "km" ? "Within ~" + Math.round(miles * 1.609344) + " km" : "Within ~" + miles + " mi";
+  }
+  function syncRadiusLabels() {
+    Array.prototype.forEach.call(form.elements.radius.options, function (opt) {
+      var miles = radiusByKey[opt.value];
+      opt.textContent = radiusLabel(miles === undefined ? null : miles);
+    });
+  }
+
   // --- date/time helpers --------------------------------------------------
   // Event timestamps are already localized (Pacific) with an offset, e.g.
   // "2026-06-22T10:30:00-07:00". We display the wall-clock part verbatim,
@@ -145,9 +189,10 @@
         if (!hit) return false;
       }
       if (miles != null) {
-        if (ev.distance_mi == null) {
+        var dist = distanceOf(ev);
+        if (dist == null) {
           if (state.hideUnknown) return false;
-        } else if (ev.distance_mi > miles) {
+        } else if (dist > miles) {
           return false;
         }
       }
@@ -163,9 +208,10 @@
 
     matched.sort(function (a, b) {
       if (state.sort === "distance") {
-        var au = a.distance_mi == null, bu = b.distance_mi == null;
+        var da = distanceOf(a), db = distanceOf(b);
+        var au = da == null, bu = db == null;
         if (au !== bu) return au ? 1 : -1;
-        var diff = (a.distance_mi || 0) - (b.distance_mi || 0);
+        var diff = (da || 0) - (db || 0);
         if (diff) return diff;
       }
       return parseLocal(a.start) - parseLocal(b.start);
@@ -175,8 +221,9 @@
 
   // --- list rendering (port of _event_list.html) --------------------------
   function cardHtml(ev, d, groupByDay) {
-    var dist = ev.distance_mi != null
-      ? '<span class="distance">' + ev.distance_mi.toFixed(1) + " mi</span>" : "";
+    var distVal = distanceOf(ev);
+    var dist = distVal != null
+      ? '<span class="distance">' + formatDistance(distVal) + "</span>" : "";
     var dayInTime = groupByDay ? "" : '<span class="muted">' + dayLabel(d) + "</span>";
     var title = ev.url
       ? '<a href="' + esc(ev.url) + '" target="_blank" rel="noopener">' + esc(ev.title) + "</a>"
@@ -237,7 +284,10 @@
       if (ev.lat == null || ev.lon == null) { unknown++; return; }
       var key = round5(ev.lat) + "," + round5(ev.lon);
       if (!groups[key]) {
-        groups[key] = { city: ev.city || "Unknown location", lat: ev.lat, lon: ev.lon, events: [] };
+        groups[key] = {
+          city: ev.location_name || ev.city || "Unknown location",
+          lat: ev.lat, lon: ev.lon, events: [],
+        };
         order.push(key);
       }
       groups[key].events.push(ev);
@@ -266,13 +316,13 @@
       (unknown ? " · " + unknown + " without a mappable location" : "");
     results.innerHTML =
       '<p class="count">' + line + "</p>" +
-      '<p class="hint">Markers are placed at each city\'s center (events are located by ' +
-      "city, not exact address). Click a marker to see its events.</p>" +
+      '<p class="hint">Each marker is a branch (or city center); distances are from ' +
+      esc(activeCenter.name) + ". Click a marker to see its events.</p>" +
       '<div id="map"></div>';
 
     if (window.initEventMap) {
       window.initEventMap({
-        center: data.center,
+        center: activeCenter,
         radius_miles: miles,
         locations: locations,
         unknown: unknown,
@@ -362,6 +412,11 @@
     if (t.name === "libs" || (t.classList && t.classList.contains("lib-group-check"))) {
       syncGroups();
     }
+    if (t.name === "units") {
+      units = t.value === "km" ? "km" : "mi";
+      lsSet(UNITS_KEY, units);
+      syncRadiusLabels();
+    }
     render();
   });
 
@@ -393,10 +448,126 @@
     if (el) el.addEventListener("input", debounced);
   });
 
-  // Initial selection: your favorites if you have any (in today's data),
-  // otherwise every library.
+  // --- center location control --------------------------------------------
+  var centerName = document.getElementById("center-name");
+  var subtitleCenter = document.getElementById("subtitle-center");
+  var centerStatus = document.getElementById("center-status");
+  var centerInput = document.getElementById("center-address");
+  var centerList = document.getElementById("center-list");
+
+  function shortName(name) {
+    name = String(name || "");
+    return name.length > 42 ? name.slice(0, 40) + "…" : name;
+  }
+  function sameSpot(a, b) {
+    return Math.abs(a.lat - b.lat) < 1e-6 && Math.abs(a.lon - b.lon) < 1e-6;
+  }
+  function applyCenterLabels() {
+    if (centerName) centerName.textContent = shortName(activeCenter.name);
+    if (subtitleCenter) subtitleCenter.textContent = shortName(activeCenter.name);
+  }
+  function setStatus(msg, isError) {
+    if (!centerStatus) return;
+    centerStatus.textContent = msg || "";
+    centerStatus.classList.toggle("error", !!isError);
+  }
+  function setCenter(center) {
+    activeCenter = center;
+    lsSet(CENTER_KEY, center);
+    applyCenterLabels();
+    renderSavedAddresses();
+    render();
+  }
+  function renderSavedAddresses() {
+    if (!centerList) return;
+    centerList.innerHTML = "";
+    savedAddresses.forEach(function (addr, i) {
+      var row = document.createElement("div");
+      row.className = "center-row";
+      var pick = document.createElement("button");
+      pick.type = "button";
+      pick.className = "pick" + (sameSpot(addr, activeCenter) ? " active" : "");
+      pick.textContent = addr.label;
+      pick.addEventListener("click", function () {
+        setCenter({ name: addr.label, lat: addr.lat, lon: addr.lon });
+      });
+      var rm = document.createElement("button");
+      rm.type = "button";
+      rm.className = "remove";
+      rm.title = "Remove";
+      rm.textContent = "×";
+      rm.addEventListener("click", function () {
+        savedAddresses.splice(i, 1);
+        lsSet(ADDR_KEY, savedAddresses);
+        renderSavedAddresses();
+      });
+      row.appendChild(pick);
+      row.appendChild(rm);
+      centerList.appendChild(row);
+    });
+  }
+
+  function geocode() {
+    var q = (centerInput.value || "").trim();
+    if (!q) return;
+    setStatus("Searching…", false);
+    var url = "https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=ca,us&q=" +
+      encodeURIComponent(q);
+    fetch(url, { headers: { Accept: "application/json" } })
+      .then(function (r) { return r.json(); })
+      .then(function (list) {
+        if (!list || !list.length) { setStatus("No match for that address.", true); return; }
+        setStatus("", false);
+        setCenter({ name: list[0].display_name || q, lat: +list[0].lat, lon: +list[0].lon });
+      })
+      .catch(function () { setStatus("Address lookup failed — try again.", true); });
+  }
+  function useMyLocation() {
+    if (!navigator.geolocation) { setStatus("Geolocation isn't available here.", true); return; }
+    setStatus("Locating…", false);
+    navigator.geolocation.getCurrentPosition(
+      function (pos) {
+        setStatus("", false);
+        setCenter({ name: "My location", lat: pos.coords.latitude, lon: pos.coords.longitude });
+      },
+      function () { setStatus("Couldn't get your location.", true); },
+      { timeout: 10000 }
+    );
+  }
+  function saveCurrentCenter() {
+    if (sameSpot(activeCenter, defaultCenter)) { setStatus("Set a location first, then Save.", true); return; }
+    if (savedAddresses.some(function (a) { return sameSpot(a, activeCenter); })) {
+      setStatus("Already saved.", false);
+      return;
+    }
+    savedAddresses.push({ label: shortName(activeCenter.name), lat: activeCenter.lat, lon: activeCenter.lon });
+    lsSet(ADDR_KEY, savedAddresses);
+    renderSavedAddresses();
+    setStatus("Saved on this device.", false);
+  }
+
+  document.getElementById("center-set").addEventListener("click", geocode);
+  centerInput.addEventListener("keydown", function (e) {
+    if (e.key === "Enter") { e.preventDefault(); geocode(); }
+  });
+  document.getElementById("center-geo").addEventListener("click", useMyLocation);
+  document.getElementById("center-reset").addEventListener("click", function () { setCenter(defaultCenter); });
+  document.getElementById("center-save").addEventListener("click", saveCurrentCenter);
+
+  // --- initial state ------------------------------------------------------
+  // Library selection: your favorites if you have any (in today's data), else all.
   var startFavs = favoritesInData();
   setChecked(startFavs.length ? startFavs : allLibKeys);
   syncStars();
+
+  // Center + units: reopen on your last-used center, in your last-used unit.
+  var persistedCenter = lsGet(CENTER_KEY);
+  if (persistedCenter && typeof persistedCenter.lat === "number") activeCenter = persistedCenter;
+  applyCenterLabels();
+  renderSavedAddresses();
+  var unitsRadio = form.querySelector('input[name="units"][value="' + units + '"]');
+  if (unitsRadio) unitsRadio.checked = true;
+  syncRadiusLabels();
+
   render();
 })();

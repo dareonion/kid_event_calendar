@@ -3,8 +3,8 @@
   {{ map_data.locations | length }} location{{ '' if map_data.locations | length == 1 else 's' }}
   {%- if map_data.unknown %} · {{ map_data.unknown }} without a mappable location{% endif %}
 </p>
-<p class="hint">Markers are placed at each city's center (events are located by city, not exact
-  address). Click a marker to see its events.</p>
+<p class="hint">Each marker is a library branch where its location is known, otherwise the
+  city center. Click a marker to see its events.</p>
 <div id="map"></div>
 <script id="map-data" type="application/json">{{ map_data | tojson }}</script>
 <script>

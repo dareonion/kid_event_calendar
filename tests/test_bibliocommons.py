@@ -48,6 +48,62 @@ def test_timezone_tags_event_local_zone():
     assert str(events[0].start) == "2026-06-20 10:30:00-04:00"
 
 
+def _with_location(location: dict) -> list:
+    payload = {
+        "events": {"items": ["e1"], "pagination": {"pages": 1, "page": 1}},
+        "entities": {
+            "events": {
+                "e1": {
+                    "id": "e1",
+                    "definition": {
+                        "start": "2026-06-20T10:30",
+                        "title": "Baby Storytime",
+                        "description": "",
+                        "branchLocationId": "B1",
+                        "audienceIds": ["a1"],
+                        "isCancelled": False,
+                        "registrationInfo": {"provider": None},
+                    },
+                }
+            },
+            "eventAudiences": {"a1": {"id": "a1", "name": "Babies", "description": "Babies"}},
+            "locations": {"B1": location},
+        },
+    }
+    return parse_page(payload, key="tpl", name="TPL", subdomain="tpl", default_city="toronto")
+
+
+def test_branch_coordinates_extracted():
+    # isGeocoded is deliberately ignored — the centrePoint is still correct.
+    event = _with_location(
+        {
+            "id": "B1",
+            "name": "Fairview",
+            "mapLocation": {"centrePoint": {"lat": 43.779, "lng": -79.347}, "isGeocoded": False},
+            "address": {"city": "toronto"},
+        }
+    )[0]
+    assert (event.lat, event.lon) == (43.779, -79.347)
+    assert event.city == "Toronto"
+    assert event.geo_precise is True
+    assert event.location_name == "Fairview"
+
+
+def test_branch_without_usable_coordinates():
+    for location in (
+        {"id": "B1", "name": "Fairview"},  # no mapLocation
+        {"id": "B1", "name": "Fairview", "mapLocation": {"centrePoint": {"lat": 0, "lng": 0}}},
+        {
+            "id": "B1",
+            "name": "Fairview",
+            "mapLocation": {"centrePoint": {"lat": None, "lng": -79.3}},
+        },
+    ):
+        event = _with_location(location)[0]
+        assert event.lat is None and event.lon is None
+        assert event.geo_precise is False
+
+
 def test_parse_real_fixture_smoke():
     payload = json.loads(FIXTURE.read_text(encoding="utf-8"))
     events = parse_page(
