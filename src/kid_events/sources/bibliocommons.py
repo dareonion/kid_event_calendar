@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import time
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime
+from datetime import datetime, tzinfo
 from typing import Any, cast
 
 import httpx
@@ -41,12 +41,16 @@ class BiblioCommonsSource:
         subdomain: str,
         default_city: str,
         enabled: bool = True,
+        tz: tzinfo = PACIFIC,
     ) -> None:
         self.key = key
         self.name = name
         self.subdomain = subdomain
         self.default_city = default_city
         self.enabled = enabled
+        # BiblioCommons returns each event's local wall-clock time without an
+        # offset; tag it with the library's own zone (e.g. Eastern for Toronto).
+        self.tz = tz
 
     def fetch(
         self,
@@ -86,6 +90,7 @@ class BiblioCommonsSource:
             name=self.name,
             subdomain=self.subdomain,
             default_city=self.default_city,
+            tz=self.tz,
         )
 
 
@@ -117,9 +122,9 @@ def _audience_text(audience: dict[str, Any]) -> str:
     return text.strip()
 
 
-def _parse_start(value: str) -> datetime:
+def _parse_start(value: str, tz: tzinfo = PACIFIC) -> datetime:
     # Either a date ("2026-06-19") or a local datetime ("2026-06-19T10:00").
-    return datetime.fromisoformat(value).replace(tzinfo=PACIFIC)
+    return datetime.fromisoformat(value).replace(tzinfo=tz)
 
 
 def _location_name(definition: dict[str, Any], entities: dict[str, Any]) -> str:
@@ -151,6 +156,7 @@ def parse_page(
     name: str,
     subdomain: str,
     default_city: str,
+    tz: tzinfo = PACIFIC,
 ) -> list[Event]:
     """Convert one BiblioCommons API page into normalized events (pure)."""
     entities = payload.get("entities", {})
@@ -185,8 +191,8 @@ def parse_page(
                 title=title,
                 description=description,
                 url=f"https://{subdomain}.bibliocommons.com/events/{event_id}",
-                start=_parse_start(definition["start"]),
-                end=_parse_start(definition["end"]) if definition.get("end") else None,
+                start=_parse_start(definition["start"], tz),
+                end=_parse_start(definition["end"], tz) if definition.get("end") else None,
                 location_name=_location_name(definition, entities),
                 age_bands=[band for band in BAND_ORDER if band in bands],
                 age_inferred=inferred,

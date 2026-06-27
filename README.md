@@ -13,6 +13,20 @@ It pulls from libraries that publish official, no-auth feeds:
 | San Jose | BiblioCommons JSON API | active |
 | Mountain View | LibCal iCal feed | active |
 | Sunnyvale | City CMS (browser scrape) | active — needs the optional `sunnyvale` extra |
+| Toronto, ON | BiblioCommons JSON API | active — far from MV (see note) |
+| Mississauga, ON | — | not wired (no public feed) |
+
+> **Toronto** (Toronto Public Library) is on BiblioCommons, so it slots into the
+> same adapter; its events are tagged in the Eastern zone. It is ~2,200 mi from
+> Mountain View, so the distance filter hides its in-person events under any
+> radius preset — choose **"Any distance"** (and/or favorite its branches) to see
+> them. Its online events, like any source's, still show by default.
+>
+> **Mississauga** (Mississauga Library) has no public, no-auth events feed: its
+> BiblioCommons catalog has the Events feature disabled (`"The Events feature is
+> not available"`), and its programs are split across Eventbrite, a (now defunct)
+> Communico site, and the city CMS. Adding it would mean an Eventbrite-token or
+> headful-scrape adapter; left unwired for now.
 
 > **Sunnyvale** has no machine-readable feed: its `sunnyvale.libcal.com` page is
 > only a 3-event "featured" widget, its BiblioCommons subdomain is catalog-only
@@ -21,7 +35,7 @@ It pulls from libraries that publish official, no-auth feeds:
 > protection — even *headless* Chromium gets a 403. So its adapter drives a
 > **headful** browser (a Chrome window briefly opens during refresh). It needs the
 > optional extra (see Setup); without it, refresh just reports Sunnyvale as errored
-> and the other four libraries still work.
+> and the other libraries still work.
 
 Events are normalized into a common shape with a shared **age-band taxonomy** (infant → toddler →
 preschool → school-age → tween/teen) and tagged with their library branch's location so they can be

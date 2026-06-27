@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 from kid_events.models import AgeBand
 from kid_events.sources.bibliocommons import parse_page
@@ -30,6 +31,21 @@ def _synthetic(audience: dict[str, object]) -> dict:
             "locations": {"MH": {"id": "MH", "name": "Morgan Hill Library"}},
         },
     }
+
+
+def test_timezone_tags_event_local_zone():
+    # A library's local wall-clock time is tagged with its own zone, so Toronto
+    # events read as Eastern (-04:00 in summer), not the default Pacific.
+    payload = _synthetic({"id": "a1", "name": "Babies", "description": "Babies"})
+    events = parse_page(
+        payload,
+        key="tpl",
+        name="Toronto Public Library",
+        subdomain="tpl",
+        default_city="toronto",
+        tz=ZoneInfo("America/Toronto"),
+    )
+    assert str(events[0].start) == "2026-06-20 10:30:00-04:00"
 
 
 def test_parse_real_fixture_smoke():
