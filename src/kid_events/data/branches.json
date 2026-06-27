@@ -20,6 +20,7 @@
     "menlo park": { "lat": 37.453, "lon": -122.1817 },
     "redwood city": { "lat": 37.4852, "lon": -122.2364 },
     "fremont": { "lat": 37.5485, "lon": -121.9886 },
-    "toronto": { "lat": 43.6532, "lon": -79.3832 }
+    "toronto": { "lat": 43.6532, "lon": -79.3832 },
+    "mississauga": { "lat": 43.589, "lon": -79.6441 }
   }
 }

@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from zoneinfo import ZoneInfo
 
+from .activecommunities import ActiveCommunitiesSource
 from .base import Source
 from .bibliocommons import BiblioCommonsSource
 from .libcal import LibCalSource
@@ -29,6 +30,17 @@ ALL_SOURCES: list[Source] = [
     # mi from Mountain View, so the distance filter hides it unless you choose
     # "Any distance" (or favorite its branches and widen the radius).
     BiblioCommonsSource("tpl", "Toronto Public Library", "tpl", "toronto", tz=EASTERN),
+    # Mississauga Library has no BiblioCommons/iCal events feed; its children's
+    # programs live in the City's ActiveCommunities registration system. Same
+    # Eastern zone and ~2,000 mi distance caveat as Toronto.
+    ActiveCommunitiesSource(
+        "mississauga",
+        "Mississauga Library",
+        "https://anc.ca.apm.activecommunities.com/activemississauga",
+        ["5"],
+        "mississauga",
+        tz=EASTERN,
+    ),
     # Sunnyvale has no machine-readable feed: its real calendar is a bot-protected
     # Granicus/Vision city CMS, so this adapter scrapes it with a headful browser.
     # Requires the optional `sunnyvale` extra + `playwright install chromium`;

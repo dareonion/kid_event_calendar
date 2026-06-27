@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 from pathlib import Path
 
 from .aggregator import aggregate
@@ -54,7 +55,7 @@ def main() -> None:
 
     serve = sub.add_parser("serve", help="Run the web app")
     serve.add_argument("--host", default="127.0.0.1")
-    serve.add_argument("--port", type=int, default=8000)
+    serve.add_argument("--port", type=int, default=int(os.environ.get("PORT", 8000)))
     serve.add_argument("--reload", action="store_true", help="Auto-reload on code changes")
     serve.set_defaults(func=cmd_serve)
 

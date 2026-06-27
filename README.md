@@ -14,7 +14,7 @@ It pulls from libraries that publish official, no-auth feeds:
 | Mountain View | LibCal iCal feed | active |
 | Sunnyvale | City CMS (browser scrape) | active — needs the optional `sunnyvale` extra |
 | Toronto, ON | BiblioCommons JSON API | active — far from MV (see note) |
-| Mississauga, ON | — | not wired (no public feed) |
+| Mississauga, ON | ActiveCommunities (Active Network) JSON API | active — far from MV (see note) |
 
 > **Toronto** (Toronto Public Library) is on BiblioCommons, so it slots into the
 > same adapter; its events are tagged in the Eastern zone. It is ~2,200 mi from
@@ -22,11 +22,12 @@ It pulls from libraries that publish official, no-auth feeds:
 > radius preset — choose **"Any distance"** (and/or favorite its branches) to see
 > them. Its online events, like any source's, still show by default.
 >
-> **Mississauga** (Mississauga Library) has no public, no-auth events feed: its
-> BiblioCommons catalog has the Events feature disabled (`"The Events feature is
-> not available"`), and its programs are split across Eventbrite, a (now defunct)
-> Communico site, and the city CMS. Adding it would mean an Eventbrite-token or
-> headful-scrape adapter; left unwired for now.
+> **Mississauga** (Mississauga Library) has no BiblioCommons/iCal events feed —
+> its BiblioCommons catalog has the Events feature disabled. Its children's
+> programs live in the City's **ActiveCommunities** (Active Network) registration
+> system, whose public search API returns recurring *activities* (a season date
+> range + weekday + time); the adapter expands each into the individual dated
+> occurrences that fall inside the window. Also Eastern-zone and far from MV.
 
 > **Sunnyvale** has no machine-readable feed: its `sunnyvale.libcal.com` page is
 > only a 3-event "featured" widget, its BiblioCommons subdomain is catalog-only
