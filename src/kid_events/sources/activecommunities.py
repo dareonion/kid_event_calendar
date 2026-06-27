@@ -243,6 +243,10 @@ def parse_activities(
 
         for day in _occurrence_dates(item, window_start, window_end):
             start = datetime.combine(day, start_time, tzinfo=tz)
+            # Bound by the exact window datetime (as the other sources do), so a
+            # final-day occurrence after window_end's midnight isn't included.
+            if not (window_start <= start <= window_end):
+                continue
             end = datetime.combine(day, end_time, tzinfo=tz) if end_time else None
             events.append(
                 Event(
