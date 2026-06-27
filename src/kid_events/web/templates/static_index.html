@@ -16,7 +16,7 @@
     <div>
       <h1>Kid Event Calendar</h1>
       <p class="subtitle">Upcoming library events for kids near
-        <span id="subtitle-center">Mountain View, CA</span></p>
+        <span id="subtitle-center">{{ default_center_name }}</span></p>
     </div>
     <div class="refresh">
       <span class="muted">Updated {{ generated_label }} · rebuilt daily</span>
@@ -42,7 +42,7 @@
 
       <fieldset>
         <legend>Child's age</legend>
-        <input type="text" name="age" placeholder="e.g. 8 months, 3 years" />
+        <input type="text" name="age" placeholder="e.g. 8 months, 3 years" value="{{ default_age }}" />
         <p class="hint">or pick age groups:</p>
         {% for band in selectable_bands %}
           <label class="check">
@@ -69,7 +69,7 @@
       </fieldset>
 
       <fieldset>
-        <legend>Distance from <span id="center-name">Mountain View</span></legend>
+        <legend>Distance from <span id="center-name">{{ default_center_name }}</span></legend>
         <select name="radius">
           {% for key, preset in radius_presets.items() %}
             <option value="{{ key }}" {% if key == default_radius %}selected{% endif %}>{{ preset[0] }}</option>
@@ -127,6 +127,13 @@
       <fieldset>
         <legend>Keyword</legend>
         <input type="text" name="keyword" placeholder="storytime, lego…" />
+      </fieldset>
+
+      <fieldset>
+        <legend>Hide events</legend>
+        <input type="text" name="hide" placeholder="e.g. lego, board games" />
+        <p class="hint">Hide any event whose title or description contains these
+          (comma-separated). Or click ✕ on a card. Remembered on this device.</p>
       </fieldset>
 
       <fieldset>

@@ -2,8 +2,9 @@
 
 Aggregate upcoming **kid-friendly events** from public-library calendars (South Bay / Peninsula plus
 Toronto & Mississauga) into one filterable view. Filter by a **child's age** and by **distance from any
-address you choose** — type a street address, use your current location, or keep the Mountain View
-default; distances and the map recenter on it.
+address you choose** — type a street address or use your current location (the published page tries
+your browser location on load and otherwise defaults to Mississauga); distances and the map recenter
+on it. A **Hide** filter (and a ✕ on each card) lets you exclude events you don't want.
 
 It pulls from libraries that publish official, no-auth feeds:
 

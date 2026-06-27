@@ -21,7 +21,7 @@ from typing import Any
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
-from ..branches import load_location_book
+from ..branches import LocationBook, load_location_book
 from ..cache import EventCache, load_cache
 from ..geo import DEFAULT_RADIUS, RADIUS_PRESETS
 from ..models import BAND_ORDER, AgeBand, Event
@@ -43,9 +43,24 @@ DAY_OPTIONS: list[tuple[int, str]] = [
 ]
 DEFAULT_DAYS = 14
 
+# The published page opens centered here (a city in branches.json `cities`) and
+# pre-filtered to this age, unless the visitor's browser location or saved prefs
+# override it. The project's distance baking still uses branches.json `center`.
+DEFAULT_CENTER_NAME = "Mississauga, ON"
+DEFAULT_CENTER_CITY = "mississauga"
+DEFAULT_AGE = "27 months"
+
 # Scripts the page can render event text in, beyond English. Backed by the
 # committed (hand-authored) translations.json; unmatched text falls back to English.
 TRANSLATION_LANGS = ["zh-Hant", "zh-Hans"]
+
+
+def _default_center(book: LocationBook) -> dict[str, Any]:
+    """The page's default/fallback map center (a known city, else the book center)."""
+    city = book.cities.get(DEFAULT_CENTER_CITY)
+    if city is not None:
+        return {"name": DEFAULT_CENTER_NAME, "lat": city.lat, "lon": city.lon}
+    return {"name": book.center_name, "lat": book.center.lat, "lon": book.center.lon}
 
 
 @lru_cache
@@ -189,7 +204,7 @@ def build_payload(cache: EventCache) -> dict[str, Any]:
         "generated_label": f"{_day_label(cache.generated_at)}, {_time_label(cache.generated_at)}",
         "window_start": cache.window_start.isoformat(),
         "window_end": cache.window_end.isoformat(),
-        "center": {"name": book.center_name, "lat": book.center.lat, "lon": book.center.lon},
+        "center": _default_center(book),
         "bands": _band_meta(),
         "radius_presets": [
             {"key": key, "label": label, "miles": miles}
@@ -222,6 +237,8 @@ def render_index(cache: EventCache) -> str:
         default_radius=DEFAULT_RADIUS,
         day_options=DAY_OPTIONS,
         default_days=DEFAULT_DAYS,
+        default_center_name=DEFAULT_CENTER_NAME,
+        default_age=DEFAULT_AGE,
         library_groups=library_groups(cache),
         notes=cache.notes,
         # The <noscript> fallback lists every event, chronologically.

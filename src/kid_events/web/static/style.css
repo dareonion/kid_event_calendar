@@ -101,6 +101,7 @@ body {
 }
 
 .card {
+  position: relative;
   display: grid;
   grid-template-columns: 92px 1fr;
   gap: 0.9rem;
@@ -110,6 +111,20 @@ body {
   padding: 0.8rem 1rem;
   margin-bottom: 0.6rem;
 }
+.hide-event {
+  position: absolute;
+  top: 0.35rem;
+  right: 0.45rem;
+  border: 0;
+  background: none;
+  color: #cbd5e1;
+  font-size: 0.85rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0.15rem 0.3rem;
+}
+.hide-event:hover { color: #b91c1c; }
+.card-body { padding-right: 0.9rem; }
 .card-time { display: flex; flex-direction: column; gap: 0.2rem; font-size: 0.82rem; }
 .card-time .time { font-weight: 700; font-size: 0.95rem; }
 .distance { color: var(--accent); font-weight: 600; }

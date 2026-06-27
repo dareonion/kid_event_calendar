@@ -49,7 +49,7 @@
     try { window.localStorage.setItem(key, JSON.stringify(val)); } catch (e) { /* ignore */ }
   }
   var CENTER_KEY = "kec:center", ADDR_KEY = "kec:addresses", UNITS_KEY = "kec:units";
-  var LANG_KEY = "kec:lang";
+  var LANG_KEY = "kec:lang", HIDE_KEY = "kec:hide";
 
   var defaultCenter = data.center || { name: "Mountain View", lat: 37.3894, lon: -122.0819 };
   var activeCenter = defaultCenter;
@@ -162,6 +162,11 @@
       radius: form.elements.radius.value,
       days: parseInt(form.elements.days.value, 10) || data.default_days,
       keyword: form.elements.keyword.value.trim().toLowerCase(),
+      hideTerms: form.elements.hide.value
+        .toLowerCase()
+        .split(",")
+        .map(function (s) { return s.trim(); })
+        .filter(Boolean),
       libs: checkedValues("libs"),
       hideUnknown: form.elements.hide_unknown.checked,
       sort: form.elements.sort.value,
@@ -213,9 +218,12 @@
       var start = parseLocal(ev.start);
       if (start < windowStart || start > dateTo) return false;
       if (!libSet[branchKey(ev)]) return false;
-      if (state.keyword) {
+      if (state.keyword || state.hideTerms.length) {
         var hay = (ev.title + "\n" + (ev.description || "")).toLowerCase();
-        if (hay.indexOf(state.keyword) === -1) return false;
+        if (state.keyword && hay.indexOf(state.keyword) === -1) return false;
+        for (var i = 0; i < state.hideTerms.length; i++) {
+          if (hay.indexOf(state.hideTerms[i]) !== -1) return false;
+        }
       }
       return true;
     });
@@ -264,6 +272,9 @@
       ? '<p class="desc">' + esc(truncate(descText, 220)) + "</p>" : "";
 
     return '<article class="card">' +
+      '<button type="button" class="hide-event" data-title="' +
+        esc(ev.title).replace(/"/g, "&quot;") +
+        '" title="Hide events like this" aria-label="Hide this event">✕</button>' +
       '<div class="card-time"><span class="time">' + timeLabel(d) + "</span>" + dayInTime + dist + "</div>" +
       '<div class="card-body"><h3>' + title + "</h3>" +
       '<p class="meta">' + meta + "</p>" +
@@ -472,6 +483,31 @@
     if (el) el.addEventListener("input", debounced);
   });
 
+  // --- hide / exclude events ----------------------------------------------
+  var hideField = form.elements.hide;
+  var hidePersist = debounce(function () {
+    lsSet(HIDE_KEY, hideField.value);
+    render();
+  }, 300);
+  if (hideField) hideField.addEventListener("input", hidePersist);
+
+  function addHideTerm(term) {
+    term = (term || "").trim();
+    if (!term || !hideField) return;
+    var current = hideField.value.trim();
+    var existing = current.toLowerCase().split(",").map(function (s) { return s.trim(); });
+    if (existing.indexOf(term.toLowerCase()) !== -1) return; // already hidden
+    hideField.value = current ? current + ", " + term : term;
+    lsSet(HIDE_KEY, hideField.value);
+    render();
+  }
+
+  // The ✕ on a card hides every event with that (English) title.
+  results.addEventListener("click", function (e) {
+    var btn = e.target.closest(".hide-event");
+    if (btn) addHideTerm(btn.getAttribute("data-title"));
+  });
+
   // --- center location control --------------------------------------------
   var centerName = document.getElementById("center-name");
   var subtitleCenter = document.getElementById("subtitle-center");
@@ -495,9 +531,9 @@
     centerStatus.textContent = msg || "";
     centerStatus.classList.toggle("error", !!isError);
   }
-  function setCenter(center) {
+  function setCenter(center, persist) {
     activeCenter = center;
-    lsSet(CENTER_KEY, center);
+    if (persist !== false) lsSet(CENTER_KEY, center); // auto-located centers aren't pinned
     applyCenterLabels();
     renderSavedAddresses();
     render();
@@ -566,6 +602,21 @@
       { enableHighAccuracy: true, timeout: 30000, maximumAge: 600000 }
     );
   }
+
+  // On load, try to center on the visitor's current location (unless they've
+  // pinned a center). Non-blocking and silent on failure — we keep the default.
+  function autoLocate() {
+    if (!navigator.geolocation) return;
+    setStatus("Finding your location…", false);
+    navigator.geolocation.getCurrentPosition(
+      function (pos) {
+        setStatus("", false);
+        setCenter({ name: "My location", lat: pos.coords.latitude, lon: pos.coords.longitude }, false);
+      },
+      function () { setStatus("", false); }, // keep the default center quietly
+      { enableHighAccuracy: true, timeout: 30000, maximumAge: 600000 }
+    );
+  }
   function saveCurrentCenter() {
     if (sameSpot(activeCenter, defaultCenter)) { setStatus("Set a location first, then Save.", true); return; }
     if (savedAddresses.some(function (a) { return sameSpot(a, activeCenter); })) {
@@ -606,5 +657,13 @@
   var langRadio = savedLang && form.querySelector('input[name="lang"][value="' + savedLang + '"]');
   if (langRadio) langRadio.checked = true;
 
+  // Hide terms: restore your remembered exclusions.
+  var savedHide = lsGet(HIDE_KEY);
+  if (typeof savedHide === "string" && hideField) hideField.value = savedHide;
+
   render();
+
+  // Unless you've pinned a center, immediately try to center on your location;
+  // it falls back silently to the default center if blocked/unavailable.
+  if (!persistedCenter) autoLocate();
 })();
