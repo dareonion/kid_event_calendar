@@ -523,15 +523,23 @@
       .catch(function () { setStatus("Address lookup failed — try again.", true); });
   }
   function useMyLocation() {
-    if (!navigator.geolocation) { setStatus("Geolocation isn't available here.", true); return; }
-    setStatus("Locating…", false);
+    if (!navigator.geolocation) { setStatus("Geolocation isn't available in this browser.", true); return; }
+    setStatus("Locating… allow the permission prompt if it appears.", false);
     navigator.geolocation.getCurrentPosition(
       function (pos) {
         setStatus("", false);
         setCenter({ name: "My location", lat: pos.coords.latitude, lon: pos.coords.longitude });
       },
-      function () { setStatus("Couldn't get your location.", true); },
-      { timeout: 10000 }
+      function (err) {
+        var msg = "Couldn't get your location — try again, or type an address.";
+        if (err.code === 1) msg = "Location is blocked. Allow it for this site in your browser, then retry.";
+        else if (err.code === 2) msg = "Your location is unavailable right now — try again or type an address.";
+        else if (err.code === 3) msg = "Locating timed out — try again, or type an address.";
+        setStatus(msg, true);
+      },
+      // A long timeout so the permission prompt has time to be answered (it counts
+      // against the timeout); accept a recent cached fix for fast repeat clicks.
+      { enableHighAccuracy: true, timeout: 30000, maximumAge: 600000 }
     );
   }
   function saveCurrentCenter() {
