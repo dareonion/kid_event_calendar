@@ -14,13 +14,24 @@
   var data = JSON.parse(dataEl.textContent);
   var events = data.events || [];
 
-  // value -> label, value -> {min,max,is_kid}, for badges and age->band mapping.
-  var bandLabel = {};
+  // band value -> label per language, and value -> {min,max,is_kid} for age mapping.
+  var bandLabels = { en: {}, "zh-Hant": {}, "zh-Hans": {} };
   var bandMeta = {};
   (data.bands || []).forEach(function (b) {
-    bandLabel[b.value] = b.label;
+    bandLabels.en[b.value] = b.label;
+    bandLabels["zh-Hant"][b.value] = b.label_zh_hant || b.label;
+    bandLabels["zh-Hans"][b.value] = b.label_zh_hans || b.label;
     bandMeta[b.value] = b;
   });
+  var uiTr = data.ui_tr || {};
+  var currentLang = "en"; // set from the Language toggle on each render
+  function bandLabelFor(value) {
+    return (bandLabels[currentLang] || bandLabels.en)[value] || value;
+  }
+  function uiText(key, fallback) {
+    var byLang = uiTr[currentLang];
+    return (byLang && byLang[key]) || fallback;
+  }
 
   var radiusByKey = {};
   (data.radius_presets || []).forEach(function (p) {
@@ -38,6 +49,7 @@
     try { window.localStorage.setItem(key, JSON.stringify(val)); } catch (e) { /* ignore */ }
   }
   var CENTER_KEY = "kec:center", ADDR_KEY = "kec:addresses", UNITS_KEY = "kec:units";
+  var LANG_KEY = "kec:lang";
 
   var defaultCenter = data.center || { name: "Mountain View", lat: 37.3894, lon: -122.0819 };
   var activeCenter = defaultCenter;
@@ -141,8 +153,10 @@
   }
   function readState() {
     var viewEl = form.querySelector('input[name="view"]:checked');
+    var langEl = form.querySelector('input[name="lang"]:checked');
     return {
       view: viewEl ? viewEl.value : "list",
+      lang: langEl ? langEl.value : "en",
       age: form.elements.age.value,
       bands: checkedValues("bands"),
       radius: form.elements.radius.value,
@@ -225,23 +239,29 @@
     var dist = distVal != null
       ? '<span class="distance">' + formatDistance(distVal) + "</span>" : "";
     var dayInTime = groupByDay ? "" : '<span class="muted">' + dayLabel(d) + "</span>";
+    // Translated title/desc for the active language when available, else English.
+    var tr = (ev.tr && ev.tr[currentLang]) || {};
+    var titleText = tr.title || ev.title;
     var title = ev.url
-      ? '<a href="' + esc(ev.url) + '" target="_blank" rel="noopener">' + esc(ev.title) + "</a>"
-      : esc(ev.title);
+      ? '<a href="' + esc(ev.url) + '" target="_blank" rel="noopener">' + esc(titleText) + "</a>"
+      : esc(titleText);
 
     var meta = esc(ev.source);
     if (ev.location_name) meta += " · " + esc(ev.location_name);
     if (ev.city) meta += " · " + esc(ev.city);
-    if (ev.registration_required) meta += ' · <span class="reg">registration</span>';
+    if (ev.registration_required) {
+      meta += ' · <span class="reg">' + esc(uiText("registration", "registration")) + "</span>";
+    }
 
     var badges = (ev.age_bands || []).map(function (b) {
-      return '<span class="badge">' + esc(bandLabel[b] || b) + "</span>";
+      return '<span class="badge">' + esc(bandLabelFor(b)) + "</span>";
     }).join("");
     if (ev.age_inferred) {
       badges += '<span class="badge inferred" title="Age inferred from title/description">~age</span>';
     }
-    var desc = ev.description
-      ? '<p class="desc">' + esc(truncate(ev.description, 220)) + "</p>" : "";
+    var descText = tr.desc || ev.description;
+    var desc = descText
+      ? '<p class="desc">' + esc(truncate(descText, 220)) + "</p>" : "";
 
     return '<article class="card">' +
       '<div class="card-time"><span class="time">' + timeLabel(d) + "</span>" + dayInTime + dist + "</div>" +
@@ -333,6 +353,7 @@
   // --- glue ---------------------------------------------------------------
   function render() {
     var state = readState();
+    currentLang = state.lang;
     var matched = filterEvents(state);
     if (state.view === "map") {
       var miles = radiusByKey[state.radius];
@@ -416,6 +437,9 @@
       units = t.value === "km" ? "km" : "mi";
       lsSet(UNITS_KEY, units);
       syncRadiusLabels();
+    }
+    if (t.name === "lang") {
+      lsSet(LANG_KEY, t.value);
     }
     render();
   });
@@ -576,6 +600,11 @@
   var unitsRadio = form.querySelector('input[name="units"][value="' + units + '"]');
   if (unitsRadio) unitsRadio.checked = true;
   syncRadiusLabels();
+
+  // Language: reopen in your last-used language.
+  var savedLang = lsGet(LANG_KEY);
+  var langRadio = savedLang && form.querySelector('input[name="lang"][value="' + savedLang + '"]');
+  if (langRadio) langRadio.checked = true;
 
   render();
 })();

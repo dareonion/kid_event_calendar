@@ -8,7 +8,14 @@ import pytest
 
 from kid_events.cache import EventCache, SourceStat
 from kid_events.models import AgeBand, Event
-from kid_events.web.build import branch_groups, branch_key, build_site, library_groups
+from kid_events.web.build import (
+    branch_groups,
+    branch_key,
+    build_payload,
+    build_site,
+    library_groups,
+    load_translations,
+)
 
 PT = ZoneInfo("America/Los_Angeles")
 
@@ -74,6 +81,28 @@ def test_build_writes_site(tmp_path: Path, cache: EventCache) -> None:
         assert (out / "static" / asset).exists()
     # GitHub Pages should serve the output verbatim.
     assert (out / ".nojekyll").exists()
+
+
+def test_translations_dictionary_loads():
+    table = load_translations()
+    assert {"zh-Hant", "zh-Hans"} <= set(table["Family LEGO"])
+    assert table["registration"]["zh-Hant"] == "需報名"
+
+
+def test_translations_attached_to_matching_events(cache: EventCache) -> None:
+    payload = build_payload(cache)
+    by_title = {e["title"]: e for e in payload["events"]}
+
+    # "Baby Storytime" is in the dictionary -> its title is translated both ways.
+    baby = by_title["Baby Storytime"]
+    assert baby["tr"]["zh-Hant"]["title"] and baby["tr"]["zh-Hans"]["title"]
+    # "LEGO Club" is not in the dictionary -> no translation block at all.
+    assert "tr" not in by_title["LEGO Club"]
+
+    # Band labels and fixed labels carry translations too.
+    toddler = next(b for b in payload["bands"] if b["value"] == "toddler")
+    assert toddler["label_zh_hant"] and toddler["label_zh_hans"]
+    assert payload["ui_tr"]["zh-Hans"]["registration"] == "需报名"
 
 
 def test_embedded_payload_has_events_and_config(tmp_path: Path, cache: EventCache) -> None:

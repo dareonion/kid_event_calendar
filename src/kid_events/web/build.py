@@ -14,6 +14,8 @@ import json
 import shutil
 from collections import Counter
 from datetime import datetime
+from functools import lru_cache
+from importlib.resources import files
 from pathlib import Path
 from typing import Any
 
@@ -22,7 +24,7 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 from ..branches import load_location_book
 from ..cache import EventCache, load_cache
 from ..geo import DEFAULT_RADIUS, RADIUS_PRESETS
-from ..models import BAND_ORDER, AgeBand
+from ..models import BAND_ORDER, AgeBand, Event
 
 _HERE = Path(__file__).resolve().parent
 _TEMPLATES = _HERE / "templates"
@@ -40,6 +42,18 @@ DAY_OPTIONS: list[tuple[int, str]] = [
     (14, "Next 14 days"),
 ]
 DEFAULT_DAYS = 14
+
+# Scripts the page can render event text in, beyond English. Backed by the
+# committed (hand-authored) translations.json; unmatched text falls back to English.
+TRANSLATION_LANGS = ["zh-Hant", "zh-Hans"]
+
+
+@lru_cache
+def load_translations() -> dict[str, dict[str, str]]:
+    """English source string -> {"zh-Hant": ..., "zh-Hans": ...} (committed data)."""
+    raw = files("kid_events").joinpath("data/translations.json").read_text(encoding="utf-8")
+    table: dict[str, dict[str, str]] = json.loads(raw)
+    return table
 
 
 def _day_label(value: datetime) -> str:
@@ -62,16 +76,23 @@ def _environment() -> Environment:
 
 def _band_meta() -> list[dict[str, Any]]:
     """Per-band ranges/labels the browser needs to map an age to bands."""
-    return [
-        {
+    translations = load_translations()
+    metas: list[dict[str, Any]] = []
+    for band in BAND_ORDER:
+        meta: dict[str, Any] = {
             "value": band.value,
             "label": band.label,
             "min": band.min_months,
             "max": band.max_months,
             "is_kid": band.is_kid,
         }
-        for band in BAND_ORDER
-    ]
+        tr = translations.get(band.label, {})
+        if tr.get("zh-Hant"):
+            meta["label_zh_hant"] = tr["zh-Hant"]
+        if tr.get("zh-Hans"):
+            meta["label_zh_hans"] = tr["zh-Hans"]
+        metas.append(meta)
+    return metas
 
 
 def branch_groups(cache: EventCache) -> list[dict[str, Any]]:
@@ -139,9 +160,30 @@ def library_groups(cache: EventCache) -> list[dict[str, Any]]:
     return groups
 
 
+def _event_payload(event: Event, translations: dict[str, dict[str, str]]) -> dict[str, Any]:
+    """Event payload, plus a compact ``tr`` of translated title/desc when known."""
+    data: dict[str, Any] = event.model_dump(mode="json")
+    title_tr = translations.get(event.title, {})
+    desc_tr = translations.get(event.description, {})
+    tr: dict[str, dict[str, str]] = {}
+    for code in TRANSLATION_LANGS:
+        fields: dict[str, str] = {}
+        if title_tr.get(code):
+            fields["title"] = title_tr[code]
+        if desc_tr.get(code):
+            fields["desc"] = desc_tr[code]
+        if fields:
+            tr[code] = fields
+    if tr:
+        data["tr"] = tr
+    return data
+
+
 def build_payload(cache: EventCache) -> dict[str, Any]:
     """Everything the client-side filter needs, as a JSON-serializable dict."""
     book = load_location_book()
+    translations = load_translations()
+    reg = translations.get("registration", {})
     return {
         "generated_at": cache.generated_at.isoformat(),
         "generated_label": f"{_day_label(cache.generated_at)}, {_time_label(cache.generated_at)}",
@@ -159,7 +201,9 @@ def build_payload(cache: EventCache) -> dict[str, Any]:
         "default_days": DEFAULT_DAYS,
         "sources": [stat.model_dump() for stat in cache.sources],
         "notes": cache.notes,
-        "events": [event.model_dump(mode="json") for event in cache.events],
+        "events": [_event_payload(event, translations) for event in cache.events],
+        # Fixed event-card labels by language (band labels travel on `bands`).
+        "ui_tr": {code: {"registration": reg[code]} for code in TRANSLATION_LANGS if reg.get(code)},
     }
 
 

@@ -106,6 +106,12 @@ The **Libraries** picker is a multi-select grouped by system; ★ any branches t
 Favorites are stored in your browser (`localStorage`) and become the default selection every time you
 open the page, so you can keep a short list of go-to libraries without re-filtering each visit.
 
+A **Language** toggle renders event titles, descriptions, and age labels in English, Traditional, or
+Simplified Chinese. Translations are a small hand-authored dictionary
+(`data/translations.json`) keyed by the source English text, so recurring programs stay translated
+across daily rebuilds; any event whose text isn't in the dictionary shows English. Branch names,
+cities, and dates stay in English.
+
 ### Daily GitHub Pages publish
 
 `.github/workflows/publish.yml` refreshes and rebuilds the page every morning (Pacific) and deploys
